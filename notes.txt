@@ -1,0 +1,243 @@
+ECS
+	EnTT		- https://github.com/skypjack/entt#code-example
+	flecs		- https://github.com/SanderMertens/flecs
+
+Physics
+	Box2d		- https://box2d.org/documentation
+
+Math
+	https://gamemath.com/
+
+Editor Config File Format
+	YAML
+
+Particle effects
+
+----------------------------------
+ToDo:
+[ ] Load model
+[ ] Camera movement
+[ ] Lightsource
+[ ] Bumpmapping
+[ ] UI
+[ ] Depth stencil
+[ ] Render graph
+[ ] Multiple cameras
+[ ] Wireframe view frustrum
+[ ] Dynamic buffers
+[ ] Dynamic lighting
+
+----------------------------------
+
+Class hierarchy
+
+Game
+├── CameraManager
+├── InputManager
+├── ModelManager
+├── RenderManager
+│	├── Device
+│	├── Context
+│	├── Swap Chain
+│	├── Render Target View
+│	├── Depth Buffer (Depth-Stencil Buffer)
+│	├── Constant buffer
+│	├── Rasterizer state
+│	└── Blend state
+├── SceneManager
+│	└── Scene
+├── UIManager
+│
+├── GameObject
+│	├── Transform
+│	└── Model
+│		└── Mesh
+│			├── Material
+│			│	├── Texture
+│			│	├── Shaders
+│			│	├── Input Layout
+│			│	└── Sampler state
+│			├── Vertex buffer
+│			├── Index buffer
+│			└── Sampler state
+└── LightSource
+
+----------------------------------
+
+std::unordered_map<std::string, std::shared_ptr<GameObject>> gameObjects;
+
+----------------------------------
+
+struct SQueue
+    {
+        /// 1. Opaque Queue
+        /// Purpose: Renders solid objects that do not require any special transparency handling.
+        /// Order: Usually sorted front-to-back based on depth to minimize overdraw, which optimizes performance by reducing the number of pixels that need to be shaded.
+        /// Common Uses: Static geometry like terrain, buildings, characters, and any object that does not involve transparency.
+        std::vector<Mesh> opaque;
+
+        /// 2. Transparent Queue
+        /// Purpose: Handles objects with transparency, such as glass, water, particles, or other materials with alpha blending.
+        /// Order: Typically sorted back-to-front because transparent objects need to be rendered after opaque objects and in the correct order to blend properly.
+        /// Common Uses: Effects like smoke, explosions, UI elements, or anything that requires partial visibility.
+        std::vector<Mesh> transparent;
+
+        /// 3. Skybox/Sky Queue
+        /// Purpose: Specifically for rendering the skybox or sky sphere, which typically surrounds the entire scene.
+        /// Order: Rendered first or last (commonly rendered first to set the background), often without depth testing to ensure it appears behind all other objects.
+        /// Common Uses: Rendering skies, backgrounds, or horizon lines.
+        std::vector<Mesh> skybox;
+
+        /// 4. UI/HUD Queue
+        /// Purpose: Renders 2D elements on the screen, such as user interfaces, heads-up displays (HUDs), and overlays.
+        /// Order: Rendered after the main 3D scene, typically in screen space, ensuring these elements appear on top of the game world.
+        /// Common Uses: Menus, health bars, ammo counts, and other interface elements.
+        std::vector<Mesh> ui;
+
+        /// 5. Shadow Queue
+        /// Purpose: Renders objects into shadow maps for shadow calculation.
+        /// Order: May require sorting or culling based on the light's view to optimize shadow rendering.
+        /// Common Uses: Creating shadow maps for directional lights (like the sun), spotlights, or point lights.
+        std::vector<Mesh> shadow;
+
+        /// 6. Post-Processing Queue
+        /// Purpose: Handles post-processing effects applied after the main scene is rendered.
+        /// Order: These are typically applied in a specific sequence (e.g., bloom, motion blur, color grading).
+        /// Common Uses: Effects like depth of field, motion blur, bloom, screen-space ambient occlusion (SSAO), and color grading.
+        std::vector<Mesh> postProcessing;
+
+        /// 7. Deferred Queue
+        /// Purpose: Used in deferred rendering pipelines to handle the shading of objects based on data accumulated in G-buffers.
+        /// Order: Typically involves a geometry pass to fill G-buffers and then a lighting pass to apply lighting based on the contents of the G-buffers.
+        /// Common Uses: High-end rendering that allows for complex lighting scenarios with many dynamic lights.
+        std::vector<Mesh> deferred;
+
+        /// 8. Debug Queue
+        /// Purpose: For rendering debugging visuals, like wireframes, bounding boxes, or visual aids for developers.
+        /// Order: Usually rendered on top of the main scene or as overlays, often toggled on/off for debugging purposes.
+        /// Common Uses: Debugging visuals for physics, navigation paths, or object visibility.
+        std::vector<Mesh> debug;
+
+        /// 9. Special Effects Queue
+        /// Purpose: Handles special rendering scenarios like particle systems, decals, or volumetric effects.
+        /// Order: Depends on the effect; particles may be sorted by distance, while decals may need to be applied directly onto surfaces.
+        /// Common Uses: Particles, decals, volumetric lighting, and fog effects.
+        std::vector<Mesh> specialfx;
+
+        /// 10. Terrain Queue
+        /// Purpose: Dedicated to terrain rendering, especially in games with large open worlds.
+        /// Order: Typically sorted to optimize performance and rendering detail based on the viewer's distance.
+        /// Common Uses: Rendering large-scale environments, detailed landscapes, or procedurally generated terrains.
+        std::vector<Mesh> terrain;
+
+        /// 11. Reflection/Refraction Queue
+        /// Purpose: Renders objects or environments for reflection and refraction effects, often using separate render targets.
+        /// Order: These objects might be rendered in a specific pass where reflections or refractions are calculated.
+        /// Common Uses: Water surfaces, reflective metals, or glass.
+        std::vector<Mesh> refraction;
+    } static queue;
+
+    Resources
+
+        Game loop timing:
+            https://gameprogrammingpatterns.com/game-loop.html
+            https://gafferongames.com/post/fix_your_timestep/
+
+----------------------------------
+
+1. CamelCase and PascalCase
+
+    camelCase: Typically used for variables and method names, where the first letter of the first word is lowercase, and the first letter of each subsequent word is capitalized.
+        Example: playerHealth, spawnEnemy()
+    PascalCase: Usually applied to class names, structs, or constants, where the first letter of each word is capitalized.
+        Example: GameManager, PlayerCharacter, MAX_LIVES
+
+2. Prefixing and Suffixing for Specific Data Types
+
+    Member Variables (m_ or _suffix): Prefix or suffix to distinguish between member variables and local variables.
+        Example: m_PlayerSpeed or playerSpeed_
+    Global Variables (g_): Prefix to indicate that a variable is global.
+        Example: g_CurrentLevel
+    Pointers (p or ptr): Sometimes, developers prefix pointers with p or ptr.
+        Example: pPlayer, playerPtr
+    Constants (k, CONST_): Prefix or suffix used for constants.
+        Example: kMaxLives, CONST_PLAYER_SPEED
+
+3. Class Names
+
+    Class names are usually in PascalCase to make them easily distinguishable.
+    Example: CharacterController, AIManager, GameState
+
+4. Component Systems
+
+    When using Entity-Component Systems (ECS), it's common to use a PascalCase with a suffix Component.
+        Example: TransformComponent, RenderComponent
+
+5. Boolean Variables
+
+    Boolean variables often begin with an auxiliary verb to indicate a true/false state, like is, has, can, or should.
+        Example: isJumping, hasPowerup, canShoot, shouldRespawn
+
+6. Functions/Methods
+
+    VerbNoun Format: Functions are often named with an action, following a verb-noun structure. The name should reflect the action it performs.
+        Example: MovePlayer(), SpawnEnemy(), UpdateScore()
+    Getters and Setters: For retrieving or modifying member variables, common names follow the pattern GetX() and SetX().
+        Example: GetHealth(), SetPosition()
+
+7. Namespaces
+
+    Namespaces are typically in PascalCase and used to organize code logically (e.g., separating game engine systems from game logic).
+        Example: Engine::Physics, Game::Audio
+
+8. Enums and Enum Values
+
+    Enum types are usually in PascalCase, while their values are written in ALL_CAPS with underscores.
+        Example:
+
+        cpp
+
+        enum class PlayerState {
+            IDLE,
+            RUNNING,
+            JUMPING,
+            ATTACKING
+        };
+
+9. File Naming
+
+    PascalCase or snake_case is common for filenames. Files are often named after the class they contain.
+        Example: GameManager.cpp, player_character.h, ai_manager.cpp
+
+10. Shaders and Assets
+
+    Asset files (textures, models, shaders) usually follow a logical structure to ensure they are grouped and organized.
+    Shaders: Prefixes or suffixes to differentiate between vertex, fragment, or other shader types.
+        Example: player_vert.glsl, enemy_frag.spv
+    Textures: Textures might include a prefix or suffix to indicate their usage (e.g., diffuse, normal).
+        Example: character_diffuse.png, tree_normal.tga
+
+11. AI and Game States
+
+    Game and AI states often follow a descriptive naming convention with clear state definitions.
+        Example: STATE_IDLE, STATE_ATTACKING, STATE_DYING
+
+12. Math and Vectors
+
+    For representing vectors, quaternions, and other mathematical constructs, it's common to use abbreviations like vec, quat, or mat.
+        Example: vec3 position, quat orientation, mat4 transform
+
+13. Action Mappings and Input
+
+    Input actions are often given descriptive names that correspond to in-game actions.
+        Example: JumpAction, MoveForward, FireWeapon
+
+14. Event Handling
+
+    Event handlers typically follow a structure like On + Action, to signify that they react to an event.
+        Example: OnPlayerDeath(), OnLevelCompleted()
+
+15. Timers and Delays
+
+    Variables used for timing or delays often include a time unit suffix (Ms, Sec, Frames).
+        Example: respawnDelaySec, jumpCooldownMs, animationDurationFrames
