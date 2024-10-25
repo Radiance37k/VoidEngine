@@ -1,10 +1,10 @@
 # VoidEngine
-
+  
 A game engine programmed in C++ utilizing Vulkan.
 The ide is to have each part of the engine a seperate dll, only to be loaded if used to prevent the end result being bloated with unnecessary features. It should also make any patching of the engine easier since it is not the entire engine being updated, just the relevant dll.
-
+  
 This will be the intended class hierarchy. It is subject to change and it might be a bit off at the moment, it was made while I was still trying out Directx11. 
-
+  
 ## Class hierarchy
 ```bash
 Game ( VoidEngine.h )
@@ -39,28 +39,29 @@ Game ( VoidEngine.h )
    │
    └── LightSourceManager ( Managers/LightSourceManager.h )
 ```
+  
 ## Todo
-A set of features I intend to implement:
-[x] Load model
-[x] Camera movement
-[ ] Camera mouse movement
-[ ] Input manager
-[x] Lightsource
-[ ] Bumpmapping
-[ ] UI
-[ ] Dynamic buffers
-[ ] Dynamic lighting
-[ ] Render queues
-
+A set of features I intend to implement:  
+[x] Load model  
+[x] Camera movement  
+[ ] Camera mouse movement  
+[ ] Input manager  
+[x] Lightsource  
+[ ] Bumpmapping  
+[ ] UI  
+[ ] Dynamic buffers  
+[ ] Dynamic lighting  
+[ ] Render queues  
+  
 ## Wishlist
-A set of features I'd like to implement:
-[ ] Depth stencil  
-[ ] Render graph
-[ ] Wireframe camera view frustum
-[ ] Multiple cameras
-[ ] Post-processing effects
-[ ] Particle engine
-
+A set of features I'd like to implement:  
+[ ] Depth stencil    
+[ ] Render graph  
+[ ] Wireframe camera view frustum  
+[ ] Multiple cameras  
+[ ] Post-processing effects  
+[ ] Particle engine  
+  
 ## SBOM
 VulkanSDK  
 glfw  
