@@ -42,25 +42,25 @@ Game ( VoidEngine.h )
   
 ## Todo
 A set of features I intend to implement:  
-[x] Load model  
-[x] Camera movement  
-[ ] Camera mouse movement  
-[ ] Input manager  
-[x] Lightsource  
-[ ] Bumpmapping  
-[ ] UI  
-[ ] Dynamic buffers  
-[ ] Dynamic lighting  
-[ ] Render queues  
+- [x] Load model  
+- [x] Camera movement  
+- [ ] Camera mouse movement  
+- [ ] Input manager  
+- [x] Lightsource  
+- [ ] Bumpmapping  
+- [ ] UI  
+- [ ] Dynamic buffers  
+- [ ] Dynamic lighting  
+- [ ] Render queues  
   
 ## Wishlist
 A set of features I'd like to implement:  
-[ ] Depth stencil    
-[ ] Render graph  
-[ ] Wireframe camera view frustum  
-[ ] Multiple cameras  
-[ ] Post-processing effects  
-[ ] Particle engine  
+- [ ] Depth stencil    
+- [ ] Render graph  
+- [ ] Wireframe camera view frustum  
+- [ ] Multiple cameras  
+- [ ] Post-processing effects  
+- [ ] Particle engine  
   
 ## SBOM
 VulkanSDK  
