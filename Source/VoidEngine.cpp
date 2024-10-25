@@ -106,6 +106,7 @@ namespace VoidEngine
                 GlobalUbo ubo{};
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getView();
+                ubo.inverseView = camera.getInverseView();
                 pointLight.update(frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();

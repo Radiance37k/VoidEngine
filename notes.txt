@@ -15,17 +15,20 @@ Particle effects
 
 ----------------------------------
 ToDo:
-[ ] Load model
-[ ] Camera movement
-[ ] Lightsource
+[x] Load model
+[x] Camera movement
+[ ] Mouse movement
+[ ] Input manager
+[x] Lightsource
 [ ] Bumpmapping
 [ ] UI
 [ ] Depth stencil
 [ ] Render graph
 [ ] Multiple cameras
-[ ] Wireframe view frustrum
+[ ] Wireframe view frustum
 [ ] Dynamic buffers
 [ ] Dynamic lighting
+[ ] Render queues
 
 ----------------------------------
 

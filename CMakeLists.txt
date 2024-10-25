@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.28)
 
 # Project name
 project(VoidEngine3D)
@@ -6,10 +6,6 @@ project(VoidEngine3D)
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-#if (MSVC)
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MD")
-#endif()
 
 # Find Vulkan
 find_package(Vulkan REQUIRED)
