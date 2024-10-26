@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Vulkan REQUIRED)
 
 # Manually specify the path to GLFW
-set(GLFW_ROOT "/Forritun/Mitt/VoidEngine/Source/External/glfw")
+set(GLFW_ROOT "${CMAKE_SOURCE_DIR}/Source/External/glfw")
 set(GLFW_INCLUDE_DIR "${GLFW_ROOT}/include")
 set(GLFW_LIBRARY "${GLFW_ROOT}/lib-vc2022/glfw3.lib")
 
@@ -34,26 +34,38 @@ add_library(VoidEngine SHARED
         Source/Common.hpp
         Source/VoidEngine.cpp
         Source/VoidEngine.hpp
+
         Source/Components/Camera.cpp
         Source/Components/Camera.hpp
-        Source/Components/Device.cpp
-        Source/Components/Device.hpp
+        Source/Components/GameObject.cpp
+        Source/Components/GameObject.hpp
         Source/Components/Model.cpp
         Source/Components/Model.hpp
-        Source/Components/RenderPipeline.cpp
-        Source/Components/RenderPipeline.hpp
-        Source/Components/SwapChain.cpp
-        Source/Components/SwapChain.hpp
-        Source/Components/Window.cpp
-        Source/Components/Window.hpp
-        Source/Core/GameObject.cpp
-        Source/Core/GameObject.hpp
-        Source/Managers/WindowManager.cpp
-        Source/Managers/WindowManager.hpp
+        Source/Components/PointLight.cpp
+        Source/Components/PointLight.hpp
+
+        Source/Core/Buffer.hpp
+        Source/Core/Buffer.cpp
+        Source/Core/Descriptors.cpp
+        Source/Core/Descriptors.hpp
+        Source/Core/Device.cpp
+        Source/Core/Device.hpp
+        Source/Core/FrameInfo.hpp
+        Source/Core/Renderer.cpp
+        Source/Core/Renderer.hpp
+        Source/Core/RenderPipeline.cpp
+        Source/Core/RenderPipeline.hpp
+        Source/Core/SwapChain.cpp
+        Source/Core/SwapChain.hpp
+        Source/Core/Window.cpp
+        Source/Core/Window.hpp
+
         Source/Managers/CameraManager.cpp
         Source/Managers/CameraManager.hpp
         Source/Managers/InputManager.cpp
         Source/Managers/InputManager.hpp
+        Source/Managers/LightSourceManager.cpp
+        Source/Managers/LightSourceManager.hpp
         Source/Managers/ModelManager.cpp
         Source/Managers/ModelManager.hpp
         Source/Managers/RenderManager.cpp
@@ -62,17 +74,10 @@ add_library(VoidEngine SHARED
         Source/Managers/SceneManager.hpp
         Source/Managers/UIManager.cpp
         Source/Managers/UIManager.hpp
-        Source/Managers/LightSourceManager.cpp
-        Source/Managers/LightSourceManager.hpp
-        Source/Components/Buffer.hpp
-        Source/Components/Buffer.cpp
-        Source/Components/Renderer.cpp
-        Source/Components/Renderer.hpp
-        Source/Components/Descriptors.cpp
-        Source/Components/Descriptors.hpp
-        Source/Components/PointLight.cpp
-        Source/Components/PointLight.hpp
-        Source/Components/FrameInfo.hpp
+        Source/Managers/WindowManager.cpp
+        Source/Managers/WindowManager.hpp
+        Source/Components/Vertex.cpp
+        Source/Components/Vertex.hpp
 )
 
 # Link Vulkan and GLFW to the DLL
@@ -84,15 +89,13 @@ target_link_libraries(VoidEngine PRIVATE
 # Define VOIDENGINE_EXPORTS when compiling the shared library (DLL)
 target_compile_definitions(VoidEngine PRIVATE VOIDENGINE_EXPORTS)
 
-# Create the executable (game)
-add_executable(test1 Testbeds/Test1.cpp)
+# Create the executable tests (game)
+add_executable(Test1 Testbeds/Test1.cpp)
+add_executable(Test2 Testbeds/Test2.cpp)
 
 # Link the executable with the shared library (DLL)
-target_link_libraries(test1 PRIVATE VoidEngine)
-
-# Specify where the DLL should be copied to for execution
-add_custom_command(TARGET test1 POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:VoidEngine>" "$<TARGET_FILE_DIR:test1>")
+target_link_libraries(Test1 PRIVATE VoidEngine)
+target_link_libraries(Test2 PRIVATE VoidEngine)
 
 # Shader compilation
 # Set directories for source and compiled shaders

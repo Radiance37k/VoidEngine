@@ -2,10 +2,10 @@
 #include <memory>
 
 #include "Camera.hpp"
-#include "Device.hpp"
-#include "GameObject.hpp"
-#include "RenderPipeline.hpp"
-#include "FrameInfo.hpp"
+#include "../Core/Device.hpp"
+#include "../Components/GameObject.hpp"
+#include "../Core/RenderPipeline.hpp"
+#include "../Core/FrameInfo.hpp"
 
 namespace VoidEngine
 {
@@ -29,5 +29,4 @@ namespace VoidEngine
         std::unique_ptr<Pipeline> pipeline;
         VkPipelineLayout pipelineLayout;
     };
-
 }

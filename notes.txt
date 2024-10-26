@@ -14,10 +14,12 @@ Editor Config File Format
 Particle effects
 
 ----------------------------------
+
 ToDo:
 [x] Load model
+[ ] Load scene
 [x] Camera movement
-[ ] Mouse movement
+[ ] Camera mouse movement
 [ ] Input manager
 [x] Lightsource
 [ ] Bumpmapping
@@ -29,6 +31,14 @@ ToDo:
 [ ] Dynamic buffers
 [ ] Dynamic lighting
 [ ] Render queues
+
+Wishlist:
+[ ] Editor
+[ ] Visual render graph in editor
+[ ] Wireframe camera view frustum
+[ ] Multiple cameras
+[ ] Post-processing effects
+[ ] Particle engine
 
 ----------------------------------
 

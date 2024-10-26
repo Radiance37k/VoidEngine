@@ -25,7 +25,7 @@ namespace VoidEngine
         uint32_t subpass = 0;
     };
 
-    class VOIDENGINE_API Pipeline
+    class Pipeline
     {
     public:
         Pipeline(

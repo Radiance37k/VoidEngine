@@ -1,6 +1,8 @@
 #pragma once
-#include <Device.hpp>
-#include <Buffer.hpp>
+#include <../Core/Device.hpp>
+#include <../Core/Buffer.hpp>
+
+//#include <Vertex.hpp>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -11,7 +13,7 @@
 
 namespace VoidEngine {
 
-    class VOIDENGINE_API Model {
+    class Model {
     public:
         struct Vertex
         {

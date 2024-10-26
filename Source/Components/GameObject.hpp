@@ -27,7 +27,7 @@ namespace VoidEngine {
         float lightIntensity = 1.0f;
     };
 
-    class VOIDENGINE_API GameObject {
+    class GameObject {
     public:
         using id_t = unsigned int;
         using Map = std::unordered_map<id_t, GameObject>;
@@ -50,12 +50,13 @@ namespace VoidEngine {
 
         id_t getId() { return id; }
 
-        glm::vec3 color;
+
+
         TransformComponent transform;
 
         std::shared_ptr<Model> model;
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
-
+        glm::vec3 color;
     private:
         GameObject(id_t objId) : id{objId} {}
         id_t id;

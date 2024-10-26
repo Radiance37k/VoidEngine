@@ -3,7 +3,7 @@
 #include "InputManager.hpp"
 #include "Camera.hpp"
 #include "RenderManager.hpp"
-#include "Buffer.hpp"
+#include "Core/Buffer.hpp"
 #include "PointLight.hpp"
 
 #include <chrono>
@@ -125,12 +125,16 @@ namespace VoidEngine
 
     void Game::loadGameObjects()
     {
-        std::shared_ptr<Model> model = Model::createModelFromFile(*device, "models/flat_vase.obj");
+        std::shared_ptr<Model> model;
+
+        /*
+        model = Model::createModelFromFile(*device, "models/flat_vase.obj");
         auto flatVase = GameObject::createGameObject();
         flatVase.model = model;
         flatVase.transform.translation = {-0.5f, 0.5f, 0.0f};
         flatVase.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.emplace(flatVase.getId(), std::move(flatVase));
+        */
 
         model = Model::createModelFromFile(*device, "models/smooth_vase.obj");
         auto smoothVase = GameObject::createGameObject();

@@ -1,26 +1,26 @@
 #pragma once
 
 #include "Common.hpp"
-#include "Window.hpp"
-#include "Device.hpp"
-#include "GameObject.hpp"
-#include "Renderer.hpp"
-#include "Descriptors.hpp"
+#include "Core/Window.hpp"
+#include "Core/Device.hpp"
+#include "Components/GameObject.hpp"
+#include "Core/Renderer.hpp"
+#include "Core/Descriptors.hpp"
 
 #include <iostream>
 
 namespace VoidEngine
 {
-    class VOIDENGINE_API Game
+    class Game
     {
     public:
         static constexpr int WIDTH = 800;
         static constexpr int HEIGHT = 600;
 
-        Game();
-        ~Game();
+        VOIDENGINE_API Game();
+        VOIDENGINE_API ~Game();
 
-        void run();
+        VOIDENGINE_API void run();
 
     private:
         void loadGameObjects();

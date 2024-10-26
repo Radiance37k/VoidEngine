@@ -1,6 +1,6 @@
-#include "RenderPipeline.hpp"
-#include "Model.hpp"
-#include "Common.hpp"
+#include "../Core/RenderPipeline.hpp"
+#include "../Components/Model.hpp"
+#include "../Common.hpp"
 
 #include <fstream>
 #include <ios>

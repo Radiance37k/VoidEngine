@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 
-namespace VoidEngine {
+namespace VoidEngine
+{
     void KeyboardMovementController::moveInPlaneXZ(GLFWwindow* window, float dt, GameObject& gameObject)
     {
         glm::vec3 rotate{0.0f};

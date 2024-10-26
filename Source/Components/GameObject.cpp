@@ -1,6 +1,7 @@
 #include "GameObject.hpp"
 
-namespace VoidEngine {
+namespace VoidEngine
+{
     glm::mat4 TransformComponent::mat4()
     {
         const float c3 = glm::cos(rotation.z);

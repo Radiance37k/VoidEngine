@@ -47,6 +47,7 @@ A set of features I intend to implement:
 - [ ] Camera mouse movement  
 - [ ] Input manager  
 - [x] Lightsource  
+- [ ] Texture rendering  
 - [ ] Bumpmapping  
 - [ ] UI  
 - [ ] Dynamic buffers  

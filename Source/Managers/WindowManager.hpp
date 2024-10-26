@@ -8,7 +8,7 @@
 
 namespace VoidEngine
 {
-    class VOIDENGINE_API WindowManager
+    class WindowManager
     {
     public:
         WindowManager(int w, int h, std::string name);

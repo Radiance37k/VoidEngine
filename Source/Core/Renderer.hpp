@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Device.hpp"
+#include "../Core/Device.hpp"
 #include "SwapChain.hpp"
 #include "Window.hpp"
 
@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace VoidEngine {
-    class VOIDENGINE_API Renderer {
+    class Renderer {
     public:
         Renderer(Window &window, Device &device);
         ~Renderer();

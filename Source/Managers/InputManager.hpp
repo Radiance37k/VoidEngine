@@ -1,7 +1,7 @@
 #pragma once
 
-#include "GameObject.hpp"
-#include "Window.hpp"
+#include "../Components/GameObject.hpp"
+#include "../Core/Window.hpp"
 
 namespace VoidEngine
 {

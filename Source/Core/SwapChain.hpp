@@ -5,7 +5,8 @@
 
 #include "Device.hpp"
 
-namespace VoidEngine {
+namespace VoidEngine
+{
     class SwapChain
     {
     public:

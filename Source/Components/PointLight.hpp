@@ -2,11 +2,11 @@
 #include <memory>
 
 #include "Camera.hpp"
-#include "Device.hpp"
+#include "../Core/Device.hpp"
 #include "GameObject.hpp"
 #include "PointLight.hpp"
-#include "FrameInfo.hpp"
-#include "RenderPipeline.hpp"
+#include "../Core/FrameInfo.hpp"
+#include "../Core/RenderPipeline.hpp"
 
 namespace VoidEngine
 {

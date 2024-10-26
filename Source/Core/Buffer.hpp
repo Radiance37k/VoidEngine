@@ -4,7 +4,7 @@
 
 namespace VoidEngine
 {
-    class VOIDENGINE_API Buffer
+    class Buffer
     {
     public:
         Buffer(
