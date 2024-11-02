@@ -28,7 +28,7 @@ namespace VoidEngine
 
         Device& device;
 
-        std::unique_ptr<Pipeline> pipeline;
+        std::unique_ptr<RenderPipeline> pipeline;
         VkPipelineLayout pipelineLayout;
     };
 

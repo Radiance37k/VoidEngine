@@ -5,6 +5,7 @@
 #include <External/glfw/include/GLFW/glfw3.h>
 
 #include "Common.hpp"
+#include "Window.hpp"
 
 namespace VoidEngine
 {
@@ -18,8 +19,8 @@ namespace VoidEngine
 
         void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 
+        Window* window;
     private:
-        GLFWwindow* window;
 
         void init();
     };

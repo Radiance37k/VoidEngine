@@ -17,12 +17,24 @@
 
 namespace VoidEngine
 {
-    Game::Game()
+    Game::Game(VkExtent2D resolution)
     {
+        //windowManager = new WindowManager(resolution.width, resolution.height, "Whoop");
+        //cameraManager = new CameraManager();
+        //inputManager = new InputManager();
+        //lightSourceManager = new LightSourceManager();
+        //modelManager = new ModelManager();
+        renderManager = new RenderManager(*device, nullptr, resolution);
+        //sceneManager = new SceneManager();
+        //uiManager = new UIManager();
+
         globalPool = DescriptorPool::Builder(*device)
             .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
             .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
             .build();
+
+        renderer = new Renderer(*window, *device, RenderManager::FindDepthFormat(*device), renderManager->GetRenderPass());
+
         loadGameObjects();
     }
 
@@ -58,21 +70,23 @@ namespace VoidEngine
                 .build(globalDescriptorSets[i]);
         }
 
-        SimpleRenderSystem simpleRenderSystem{
+        /*
+        RenderManager simpleRenderSystem{
             *device,
             renderer.getSwapChainRenderPass(),
             globalSetLayout->getDescriptorSetLayout()};
+            */
 
         PointLight pointLight{
             *device,
-            renderer.getSwapChainRenderPass(),
+            renderManager->GetRenderPass(),
             globalSetLayout->getDescriptorSetLayout()};
 
         Camera camera{};
 
         auto viewerObject = GameObject::createGameObject();
         viewerObject.transform.translation.z = -2.5f;
-        KeyboardMovementController cameraController{};
+        InputManager cameraController{};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
 
@@ -87,12 +101,12 @@ namespace VoidEngine
             cameraController.moveInPlaneXZ(window->getGLFWwindow(), frameTime, viewerObject);
             camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
-            float aspect = renderer.getAspectRatio();
+            float aspect = renderer->getAspectRatio();
             camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
 
-            if (auto commandBuffer = renderer.beginFrame())
+            if (auto commandBuffer = renderer->beginFrame(renderManager->GetRenderPass()))
             {
-                int frameIndex = renderer.getFrameIndex();
+                int frameIndex = renderer->getFrameIndex();
                 FrameInfo frameInfo{
                     frameIndex,
                     frameTime,
@@ -111,12 +125,12 @@ namespace VoidEngine
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
-                // Render
-                renderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(frameInfo);
+                renderer->beginSwapChainRenderPass(commandBuffer, renderManager->GetRenderPass());
+                //simpleRenderSystem.renderGameObjects(frameInfo);
+                renderManager->RenderObjectsInQueue(RenderQueueType::OPAQUE);
                 pointLight.render(frameInfo);
-                renderer.endSwapChainRenderPass(commandBuffer);
-                renderer.endFrame();
+                renderer->endSwapChainRenderPass(commandBuffer);
+                renderer->endFrame(renderManager->GetRenderPass());
             }
         }
 

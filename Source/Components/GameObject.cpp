@@ -70,4 +70,10 @@ namespace VoidEngine
         gameObj.pointLight->lightIntensity = intensity;
         return gameObj;
     }
+
+    void GameObject::AddChild(GameObject *child)
+    {
+        child->parent_ = this;
+        children_.push_back(child);
+    }
 }

@@ -43,6 +43,8 @@ add_library(VoidEngine SHARED
         Source/Components/Model.hpp
         Source/Components/PointLight.cpp
         Source/Components/PointLight.hpp
+        Source/Components/Vertex.cpp
+        Source/Components/Vertex.hpp
 
         Source/Core/Buffer.hpp
         Source/Core/Buffer.cpp
@@ -76,8 +78,6 @@ add_library(VoidEngine SHARED
         Source/Managers/UIManager.hpp
         Source/Managers/WindowManager.cpp
         Source/Managers/WindowManager.hpp
-        Source/Components/Vertex.cpp
-        Source/Components/Vertex.hpp
 )
 
 # Link Vulkan and GLFW to the DLL

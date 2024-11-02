@@ -5,18 +5,20 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "RenderManager.hpp"
+
 namespace VoidEngine {
 
-    Renderer::Renderer(Window& window, Device& device)
+    Renderer::Renderer(Window& window, Device& device, VkFormat depthFormat, VkRenderPass renderPass)
     : window{window}, device{device}
     {
-        recreateSwapChain();
+        recreateSwapChain(depthFormat, renderPass);
         createCommandBuffers();
     }
 
     Renderer::~Renderer() { freeCommandBuffers(); }
 
-    void Renderer::recreateSwapChain()
+    void Renderer::recreateSwapChain(VkFormat depthFormat, VkRenderPass renderPass)
     {
         auto extent = window.getExtent();
         while (extent.width == 0 || extent.height == 0)
@@ -28,11 +30,11 @@ namespace VoidEngine {
 
         if (swapChain == nullptr)
         {
-            swapChain = std::make_unique<SwapChain>(device, extent);
+            swapChain = std::make_unique<SwapChain>(device, extent, depthFormat, renderPass);
         } else
         {
             std::shared_ptr<SwapChain> oldSwapChain = std::move(swapChain);
-            swapChain = std::make_unique<SwapChain>(device, extent, oldSwapChain);
+            swapChain = std::make_unique<SwapChain>(device, extent, oldSwapChain, depthFormat, renderPass);
 
             if (!oldSwapChain->compareSwapFormats(*swapChain.get()))
             {
@@ -68,14 +70,14 @@ namespace VoidEngine {
         commandBuffers.clear();
     }
 
-    VkCommandBuffer Renderer::beginFrame()
+    VkCommandBuffer Renderer::beginFrame(VkRenderPass renderPass)
     {
         assert(!isFrameStarted && "Can't call beginFrame while already in progress");
 
         auto result = swapChain->acquireNextImage(&currentImageIndex);
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
-            recreateSwapChain();
+            recreateSwapChain(RenderManager::FindDepthFormat(device), renderPass);
             return nullptr;
         }
 
@@ -97,7 +99,7 @@ namespace VoidEngine {
         return commandBuffer;
     }
 
-    void Renderer::endFrame()
+    void Renderer::endFrame(VkRenderPass renderPass)
     {
         assert(isFrameStarted && "Can't call endFrame while frame is not in progress");
         auto commandBuffer = getCurrentCommandBuffer();
@@ -111,7 +113,7 @@ namespace VoidEngine {
         window.wasWindowResized())
         {
             window.resetWindowResizedFlag();
-            recreateSwapChain();
+            recreateSwapChain(RenderManager::FindDepthFormat(device), renderPass);
         } else if (result != VK_SUCCESS)
         {
             throw std::runtime_error("failed to present swap chain image!");
@@ -121,7 +123,7 @@ namespace VoidEngine {
         currentFrameIndex = (currentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
     }
 
-    void Renderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer)
+    void Renderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer, VkRenderPass renderPass)
     {
         assert(isFrameStarted && "Can't call beginSwapChainRenderPass if frame is not in progress");
         assert(
@@ -130,7 +132,7 @@ namespace VoidEngine {
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = swapChain->getRenderPass();
+        renderPassInfo.renderPass = renderPass;//swapChain->getRenderPass();
         renderPassInfo.framebuffer = swapChain->getFrameBuffer(currentImageIndex);
 
         renderPassInfo.renderArea.offset = {0, 0};

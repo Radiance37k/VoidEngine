@@ -54,12 +54,13 @@ namespace VoidEngine
         assert(pipelineLayout != nullptr && "Can't create point light before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
-        Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+        RenderPipeline::DefaultPipelineConfigInfo();
+
         pipelineConfig.attributeDescriptions.clear();
         pipelineConfig.bindingDescriptions.clear();
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        pipeline = std::make_unique<Pipeline>(
+        pipeline = std::make_unique<RenderPipeline>(
             device,
             "Shaders/point_light.vert.spv",
             "Shaders/point_light.frag.spv",

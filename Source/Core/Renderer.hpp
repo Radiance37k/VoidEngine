@@ -9,16 +9,18 @@
 #include <memory>
 #include <vector>
 
+#include "RenderManager.hpp"
+
 namespace VoidEngine {
     class Renderer {
     public:
-        Renderer(Window &window, Device &device);
+        Renderer(Window &window, Device &device, VkFormat depthFormat, VkRenderPass renderPass);
         ~Renderer();
 
         Renderer(const Renderer &) = delete;
-        Renderer &operator=(const Renderer &) = delete;
+        //Renderer &operator=(const Renderer &) = delete;
 
-        VkRenderPass getSwapChainRenderPass() const { return swapChain->getRenderPass(); }
+        //VkRenderPass getSwapChainRenderPass() const { return RenderManager::GetRenderPass(); }
         float getAspectRatio() const { return swapChain->extentAspectRatio(); }
         bool isFrameInProgress() const { return isFrameStarted; }
 
@@ -32,15 +34,15 @@ namespace VoidEngine {
             return currentFrameIndex;
         }
 
-        VkCommandBuffer beginFrame();
-        void endFrame();
-        void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
+        VkCommandBuffer beginFrame(VkRenderPass renderPass);
+        void endFrame(VkRenderPass renderPass);
+        void beginSwapChainRenderPass(VkCommandBuffer commandBuffer, VkRenderPass renderPass);
         void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
 
     private:
         void createCommandBuffers();
         void freeCommandBuffers();
-        void recreateSwapChain();
+        void recreateSwapChain(VkFormat depthFormat, VkRenderPass renderPass);
 
         Window &window;
         Device &device;

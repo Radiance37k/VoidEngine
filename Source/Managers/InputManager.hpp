@@ -5,7 +5,7 @@
 
 namespace VoidEngine
 {
-    class KeyboardMovementController
+    class InputManager
     {
     public:
         struct KeyMappings

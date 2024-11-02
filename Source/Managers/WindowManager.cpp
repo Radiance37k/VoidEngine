@@ -16,7 +16,7 @@ namespace VoidEngine {
 
     void WindowManager::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
     {
-        if (glfwCreateWindowSurface(instance, window, nullptr, surface) != VK_SUCCESS)
+        if (glfwCreateWindowSurface(instance, window->getGLFWwindow(), nullptr, surface) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create window surface");
         }
@@ -25,7 +25,7 @@ namespace VoidEngine {
 
     bool WindowManager::ShouldClose()
     {
-        return glfwWindowShouldClose(window);
+        return glfwWindowShouldClose(window->getGLFWwindow());
     }
 
     void WindowManager::init()

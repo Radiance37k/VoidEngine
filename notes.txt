@@ -15,7 +15,7 @@ Particle effects
 
 ----------------------------------
 
-ToDo:
+To do:
 [x] Load model
 [ ] Load scene
 [x] Camera movement
@@ -254,3 +254,10 @@ struct SQueue
 
     Variables used for timing or delays often include a time unit suffix (Ms, Sec, Frames).
         Example: respawnDelaySec, jumpCooldownMs, animationDurationFrames
+
+--------------------------------
+
+Copy                - GameObject(const GameObject &) = delete;
+Assignment          - GameObject& operator=(const GameObject &) = delete;
+Move constructor    - GameObject(GameObject&&) noexcept = default;
+Move assignment     - GameObject& operator=(GameObject &&) noexcept = default;

@@ -43,22 +43,29 @@ namespace VoidEngine {
             float radius = 0.1f,
             glm::vec3 color = glm::vec3(1.f));
 
+        GameObject() = default;
+        ~GameObject() = default;
+
         GameObject(const GameObject &) = delete;
         GameObject& operator=(const GameObject &) = delete;
-        GameObject(GameObject&&) = default;
-        GameObject& operator=(GameObject &&) = default;
+        GameObject(GameObject&&) noexcept = default;
+        GameObject& operator=(GameObject &&) noexcept = default;
 
-        id_t getId() { return id; }
+        [[nodiscard("id should not be discarded")]] id_t getId() const { return id; }
 
-
+        void AddChild(GameObject* child);
 
         TransformComponent transform;
 
         std::shared_ptr<Model> model;
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
         glm::vec3 color;
+
     private:
         GameObject(id_t objId) : id{objId} {}
         id_t id;
+
+        GameObject* parent_ = nullptr;
+        std::vector<GameObject*> children_; // id's of children, managed by SceneManager.hpp
     };
 }

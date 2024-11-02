@@ -10,29 +10,30 @@
 
 namespace VoidEngine
 {
-    Pipeline::Pipeline(
+    RenderPipeline::RenderPipeline(
             Device& _device,
             const std::string& vertFilepath,
             const std::string& fragFilepath,
-            const PipelineConfigInfo configInfo) : device(_device)
+            const PipelineConfigInfo& configInfo) : device(_device)
     {
         createGraphicsPipeline(vertFilepath, fragFilepath, configInfo);
     }
 
-    Pipeline::~Pipeline()
+    RenderPipeline::~RenderPipeline()
     {
         vkDestroyShaderModule(device.device(), vertShaderModule, nullptr);
         vkDestroyShaderModule(device.device(), fragShaderModule, nullptr);
         vkDestroyPipeline(device.device(), graphicsPipeline, nullptr);
     }
 
-    void Pipeline::bind(VkCommandBuffer commandBuffer)
+    void RenderPipeline::bind(VkCommandBuffer commandBuffer)
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     }
 
-    void Pipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
+    PipelineConfigInfo RenderPipeline::DefaultPipelineConfigInfo()
     {
+        PipelineConfigInfo configInfo;
         configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
@@ -85,17 +86,41 @@ namespace VoidEngine
         configInfo.depthStencilInfo.front = {};  // Optional
         configInfo.depthStencilInfo.back = {};   // Optional
 
-        configInfo.dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        configInfo.dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data();
-        configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
+        configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStates.data();
+        configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStates.size());
         configInfo.dynamicStateInfo.flags = 0;
 
         configInfo.bindingDescriptions = Model::Vertex::getBindingDescriptions();
         configInfo.attributeDescriptions = Model::Vertex::getAttributeDescriptions();
+
+        assert(!configInfo.bindingDescriptions.empty() && "bindingDescriptions is empty!");
+        assert(!configInfo.attributeDescriptions.empty() && "attributeDescriptions is empty!");
+
+        configInfo.inputAssemblyInfo.pNext = nullptr;
+        configInfo.inputAssemblyInfo.flags = 0;
+
+        configInfo.viewportInfo.pNext = nullptr;
+        configInfo.viewportInfo.flags = 0;
+
+        configInfo.rasterizationInfo.pNext = nullptr;
+        configInfo.rasterizationInfo.flags = 0;
+
+        configInfo.multisampleInfo.pNext = nullptr;
+        configInfo.multisampleInfo.flags = 0;
+
+        configInfo.depthStencilInfo.pNext = nullptr;
+        configInfo.depthStencilInfo.flags = 0;
+
+        configInfo.dynamicStateInfo.pNext = nullptr;
+        configInfo.dynamicStateInfo.flags = 0;
+
+
+        return configInfo;
     }
 
-    std::vector<char> Pipeline::readFile(const std::string& filepath)
+    std::vector<char> RenderPipeline::readFile(const std::string& filepath)
     {
         //std::string enginePath = ENGINE_DIR + filepath;
         // My cmake copies the spirv files to the correct location
@@ -117,7 +142,7 @@ namespace VoidEngine
         return buffer;
     }
 
-    void Pipeline::createGraphicsPipeline(
+    void RenderPipeline::createGraphicsPipeline(
         const std::string& vertFilepath,
         const std::string& fragFilepath,
         const PipelineConfigInfo configInfo)
@@ -194,7 +219,7 @@ namespace VoidEngine
         }
     }
 
-    void Pipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
+    void RenderPipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
     {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

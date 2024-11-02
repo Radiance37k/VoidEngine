@@ -11,6 +11,7 @@ namespace VoidEngine
 
         std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
         VkPipelineViewportStateCreateInfo viewportInfo;
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
         VkPipelineRasterizationStateCreateInfo rasterizationInfo;
@@ -18,28 +19,32 @@ namespace VoidEngine
         VkPipelineColorBlendAttachmentState colorBlendAttachment;
         VkPipelineColorBlendStateCreateInfo colorBlendInfo;
         VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
-        std::vector<VkDynamicState> dynamicStateEnables;
         VkPipelineDynamicStateCreateInfo dynamicStateInfo;
-        VkPipelineLayout pipelineLayout = nullptr;
-        VkRenderPass renderPass = nullptr;
+        VkViewport viewport{};
+        VkRect2D scissor{};
+
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+        std::vector<VkDynamicState> dynamicStates;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        VkRenderPass renderPass = VK_NULL_HANDLE;
         uint32_t subpass = 0;
     };
 
-    class Pipeline
+    class RenderPipeline
     {
     public:
-        Pipeline(
+        RenderPipeline(
             Device& device,
             const std::string& vertFilepath,
             const std::string& fragFilepath,
-            const PipelineConfigInfo configInfo);
-        ~Pipeline();
+            const PipelineConfigInfo& configInfo);
+        ~RenderPipeline();
 
-        Pipeline(const Pipeline&) = delete;
-        Pipeline &operator=(const Pipeline&) = delete;
+        RenderPipeline(const RenderPipeline&) = delete;
+        RenderPipeline &operator=(const RenderPipeline&) = delete;
 
         void bind(VkCommandBuffer commandBuffer);
-        static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
+        static PipelineConfigInfo DefaultPipelineConfigInfo();
 
     private:
         static std::vector<char> readFile(const std::string& filepath);
@@ -47,7 +52,7 @@ namespace VoidEngine
         void createGraphicsPipeline(
             const std::string& vertFilepath,
             const std::string& fragFilepath,
-            const PipelineConfigInfo configInfo);
+            PipelineConfigInfo configInfo);
 
         void createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
 
