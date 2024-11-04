@@ -104,7 +104,7 @@ namespace VoidEngine
     class RenderManager
     {
     public:
-        VOIDENGINE_API RenderManager(Device& device_, VkDescriptorSetLayout globalSetLayout, VkExtent2D resolution);
+        VOIDENGINE_API RenderManager(Device& device_, VkExtent2D resolution);
         VOIDENGINE_API ~RenderManager();
 
         RenderManager(const RenderManager &) = delete;
@@ -121,14 +121,14 @@ namespace VoidEngine
 
         static  RenderManager& getInstance(Device& device_, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, VkExtent2D resolution)
         {
-            static RenderManager instance(device_, globalSetLayout, resolution);
+            static RenderManager instance(device_, resolution);
             return instance;
         }
 
     private:
         void createRenderPass();
         void createRenderPass(VkFormat imageFormat);
-        void createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+        void createPipelineLayout();
         void createPipeline(VkRenderPass renderPass);
 
         Device& device;
@@ -137,6 +137,8 @@ namespace VoidEngine
         VkPipelineLayout pipelineLayout{};
 
         std::unordered_map<RenderQueueType, RenderQueue> renderQueue;
+
+        VkDescriptorSetLayout globalSetLayout{};
 
         VkRenderPass renderPass{};
         std::unique_ptr<SwapChain> swapChain_{};

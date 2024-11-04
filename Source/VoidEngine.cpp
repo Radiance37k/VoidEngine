@@ -24,7 +24,7 @@ namespace VoidEngine
         //inputManager = new InputManager();
         //lightSourceManager = new LightSourceManager();
         //modelManager = new ModelManager();
-        renderManager = new RenderManager(*device, nullptr, resolution);
+        renderManager = new RenderManager(*device, resolution);
         //sceneManager = new SceneManager();
         //uiManager = new UIManager();
 

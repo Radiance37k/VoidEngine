@@ -36,11 +36,15 @@ namespace VoidEngine
         Device &_device, std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings)
         : device{_device}, bindings{bindings}
     {
+        assert(device.device() != VK_NULL_HANDLE && "Device handle is null.");
+
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
         for (auto kv : bindings)
         {
             setLayoutBindings.push_back(kv.second);
         }
+
+        assert(!setLayoutBindings.empty() && "No bindings found for descriptor set layout.");
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
         descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

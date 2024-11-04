@@ -26,7 +26,7 @@ namespace VoidEngine
         static constexpr int WIDTH = 800;
         static constexpr int HEIGHT = 600;
 
-        VOIDENGINE_API explicit Game(VkExtent2D resolution);
+        VOIDENGINE_API explicit Game(VkExtent2D resolution = {800, 600});
         VOIDENGINE_API ~Game();
 
         VOIDENGINE_API void run();

@@ -35,3 +35,4 @@ notes.txt
 *.app
 
 cmake-build-debug/
+.idea/

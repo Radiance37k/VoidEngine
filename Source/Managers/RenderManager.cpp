@@ -32,7 +32,7 @@ namespace VoidEngine
         std::cerr << "Oh noes\n";
     }
 
-    RenderManager::RenderManager(Device& device_, VkDescriptorSetLayout globalSetLayout, VkExtent2D resolution) : device(device_)
+    RenderManager::RenderManager(Device& device_, VkExtent2D resolution) : device(device_)
     {
         renderQueue[RenderQueueType::SKYBOX] = RenderQueue();
         renderQueue[RenderQueueType::OPAQUE] = RenderQueue();
@@ -44,7 +44,7 @@ namespace VoidEngine
         renderQueue[RenderQueueType::DEBUG] = RenderQueue();
 
         createRenderPass();
-        createPipelineLayout(globalSetLayout);
+        createPipelineLayout();
         createPipeline(renderPass);
 
         //swapChain_ = new SwapChain(device_, resolution, FindDepthFormat(device_), renderPass);
@@ -57,13 +57,13 @@ namespace VoidEngine
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
-    void RenderManager::createPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+    void RenderManager::createPipelineLayout()
     {
         if (globalSetLayout == nullptr)
         {
-            auto globalSetLayout = DescriptorSetLayout::Builder(device)
+            globalSetLayout = DescriptorSetLayout::Builder(device)
                         .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
-                        .build();
+                        .build()->getDescriptorSetLayout();
         }
 
         VkPushConstantRange pushConstantRange{};
