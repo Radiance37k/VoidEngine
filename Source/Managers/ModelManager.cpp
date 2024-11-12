@@ -20,7 +20,7 @@ namespace VoidEngine {
     GameObject ModelManager::LoadModel(Device& device_, const std::string &path)
     {
         std::shared_ptr<Model> model;
-        model = Model::createModelFromFile(device_, "models/flat_vase.obj");
+        model = Model::createModelFromFile(device_, path);
         auto gameObject = GameObject::createGameObject();
         gameObject.model = model;
         gameObject.transform.translation = {-0.5f, 0.5f, 0.0f};

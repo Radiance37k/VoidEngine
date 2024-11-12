@@ -1,18 +1,15 @@
 #include "RenderManager.hpp"
+#include "RenderPipeline.hpp"
+#include "SceneManager.hpp"
+#include "VoidEngine.hpp"
+#include "WindowManager.hpp"
 
 #include <array>
 #include <stdexcept>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <fstream>
 #include <glm.hpp>
-#include <iostream>
-#include <gtc/constants.hpp>
-#include "RenderPipeline.hpp"
-#include "SceneManager.hpp"
-#include "VoidEngine.hpp"
-#include "WindowManager.hpp"
 
 namespace VoidEngine
 {
@@ -22,18 +19,55 @@ namespace VoidEngine
         glm::mat4 normalMatrix{1.f};
     };
 
-    void RenderQueue::begin(VkPipelineLayout layout)
+    void RenderQueue::renderQueueBegin(VkPipelineLayout layout)
     {
-        std::cerr << "Muahahahaha\n";
+        {
+            // Start command buffer recording
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // Use as appropriate
+
+            if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to begin recording command buffer");
+            }
+
+            // Bind the camera's view/projection matrices if the camera is available
+            if (camera) {
+                // Set up necessary camera parameters here, e.g., view/projection matrices
+            }
+
+            // Bind other resources (like global descriptor set)
+            vkCmdBindDescriptorSets(
+                commandBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                layout, 0, 1,
+                &globalDescriptorSet, 0, nullptr
+            );
+
+            // Further setup before actual rendering
+        }
     }
 
-    void RenderQueue::end()
+    void RenderQueue::renderQueueEnd()
     {
-        std::cerr << "Oh noes\n";
+        // Finish recording the command buffer
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffer");
+        }
     }
 
-    RenderManager::RenderManager(Device& device_, VkExtent2D resolution) : device(device_)
+    RenderManager::RenderManager(Device& device_, Game& gameInstance, VkExtent2D resolution) : device(device_), game_(gameInstance)
     {
+        /* Creation order:
+         *
+         * Render pass
+         * Descriptor set layout
+         * Pipeline layout
+         * Pipeline
+         * Framebuffer
+         * Descriptor set allocation and update
+         * Command buffer recording
+         */
         renderQueue[RenderQueueType::SKYBOX] = RenderQueue();
         renderQueue[RenderQueueType::OPAQUE] = RenderQueue();
         renderQueue[RenderQueueType::SHADOW] = RenderQueue();
@@ -44,10 +78,26 @@ namespace VoidEngine
         renderQueue[RenderQueueType::DEBUG] = RenderQueue();
 
         createRenderPass();
-        createPipelineLayout();
-        createPipeline(renderPass);
 
-        //swapChain_ = new SwapChain(device_, resolution, FindDepthFormat(device_), renderPass);
+        std::unique_ptr<DescriptorSetLayout> globalSetLayout = DescriptorSetLayout::Builder(device)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .build();
+
+        createPipelineLayout(globalSetLayout->getDescriptorSetLayout());
+        createPipeline(renderPass);
+        // Todo: Create framebuffer
+        createDescriptorSetPool();
+        allocateDescriptorSet(globalSetLayout->getDescriptorSetLayout(), renderQueue[RenderQueueType::OPAQUE].globalDescriptorSet);
+
+        allocateCommandBuffers(renderQueue[RenderQueueType::SKYBOX].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::OPAQUE].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::SHADOW].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::TRANSPARENT].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::REFLECTION].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::UI].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::POSTPROCESSING].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::DEBUG].commandBuffer);
+
         swapChain_ = std::make_unique<SwapChain>(device_, resolution, FindDepthFormat(device_), renderPass);
     }
 
@@ -57,21 +107,14 @@ namespace VoidEngine
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
-    void RenderManager::createPipelineLayout()
+    void RenderManager::createPipelineLayout(VkDescriptorSetLayout layout)
     {
-        if (globalSetLayout == nullptr)
-        {
-            globalSetLayout = DescriptorSetLayout::Builder(device)
-                        .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
-                        .build()->getDescriptorSetLayout();
-        }
-
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(SimplePushConstantData);
 
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{layout};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -79,6 +122,7 @@ namespace VoidEngine
         pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
         if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create pipeline layout.");
@@ -101,42 +145,87 @@ namespace VoidEngine
             pipelineConfig);
     }
 
-    void RenderManager::renderGameObjects(FrameInfo& frameInfo)
+    void RenderManager::createSwapChain(VkFormat depthFormat, VkRenderPass renderPass, VkExtent2D extent)
     {
-        pipeline->bind(frameInfo.commandBuffer);
-
-        vkCmdBindDescriptorSets(
-            frameInfo.commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout,
-            0,
-            1,
-            &frameInfo.globalDescriptorSet,
-            0,
-            nullptr);
-
-        for (auto& kv : frameInfo.gameObjects)
+        while (extent.width == 0 || extent.height == 0)
         {
-            auto& obj = kv.second;
-            if (obj.model == nullptr) continue;
-            SimplePushConstantData push{};
-            push.modelMatrix = obj.transform.mat4();
-            push.normalMatrix = obj.transform.normalMatrix();
+            glfwWaitEvents();
+        }
+        vkDeviceWaitIdle(device.device());
 
-            vkCmdPushConstants(
-                frameInfo.commandBuffer,
-                pipelineLayout,
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                0,
-                sizeof(SimplePushConstantData),
-                &push);
+        if (swapChain_ == nullptr)
+        {
+            swapChain_ = std::make_unique<SwapChain>(device, extent, depthFormat, renderPass);
+        } else
+        {
+            std::shared_ptr<SwapChain> oldSwapChain = std::move(swapChain_);
+            swapChain_ = std::make_unique<SwapChain>(device, extent, oldSwapChain, depthFormat, renderPass);
 
-            obj.model->bind(frameInfo.commandBuffer);
-            obj.model->draw(frameInfo.commandBuffer);
+            if (!oldSwapChain->compareSwapFormats(*swapChain_.get()))
+            {
+                throw std::runtime_error("Swap chain image(or depth) format has changed!");
+            }
         }
     }
 
-    void RenderManager::RenderObjectsInQueue(const RenderQueueType& queueType)
+    void RenderManager::createDescriptorSetLayout()
+    {
+    }
+
+    void RenderManager::createDescriptorSetPool()
+    {
+        // Set up pool sizes for types of descriptors (e.g., uniform buffers)
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = 1;
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = 1;
+
+        vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &descriptorPool);
+    }
+
+    void RenderManager::allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet& descriptorSet)
+    {
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &layout;
+
+        vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptorSet);
+    }
+
+    void RenderManager::UpdateDescriptorSet(VkDescriptorSet destSet, VkBuffer uboBuffer)
+    {
+        /*
+        void* data;
+        vkMapMemory(device.device(), uboMemory, 0, sizeof(GlobalUbo), 0, &data);
+        memcpy(data, &game_., sizeof(GlobalUbo));
+        vkUnmapMemory(device.device(), uboMemory);
+        */
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uboBuffer;  // Your uniform buffer handle
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(GlobalUbo);
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = destSet;
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+
+        vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
+    }
+
+    void RenderManager::RenderObjectsInQueue(const RenderQueueType& queueType, VkBuffer ubo)
     {
         if (pipeline == nullptr) return;
 
@@ -159,7 +248,7 @@ namespace VoidEngine
             //for (auto& kv : q->second)
             for (auto& id : q->second.gameObjectIDs)
             {
-                auto obj = SceneManager::FindGameObject(id);
+                auto obj = game_.sceneManager->FindGameObject(id);
                 if (obj->model == nullptr) continue;
                 SimplePushConstantData push{};
                 push.modelMatrix = obj->transform.mat4();
@@ -177,6 +266,8 @@ namespace VoidEngine
                 obj->model->draw(renderQueue[queueType].commandBuffer);
             }
         }
+
+        //renderQueue[queueType].renderQueueEnd();
     }
 
     void RenderManager::AddToRenderQueue(const GameObject& gameObject, RenderQueueType queueType)
@@ -195,6 +286,19 @@ namespace VoidEngine
         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    }
+
+    void RenderManager::allocateCommandBuffers(VkCommandBuffer& commandBuffer)
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;  // Or secondary, depending on your use case
+        allocInfo.commandPool = device.getCommandPool();                // Replace with your actual command pool
+        allocInfo.commandBufferCount = 1;
+
+        if (vkAllocateCommandBuffers(device.device(), &allocInfo, &commandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate command buffer");
+        }
     }
 
     void RenderManager::createRenderPass()

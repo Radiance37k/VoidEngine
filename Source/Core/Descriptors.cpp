@@ -33,13 +33,13 @@ namespace VoidEngine
     // *************** Descriptor Set Layout *********************
 
     DescriptorSetLayout::DescriptorSetLayout(
-        Device &_device, std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings)
+        Device &_device, const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& bindings)
         : device{_device}, bindings{bindings}
     {
         assert(device.device() != VK_NULL_HANDLE && "Device handle is null.");
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-        for (auto kv : bindings)
+        for (const auto& kv : bindings)
         {
             setLayoutBindings.push_back(kv.second);
         }
@@ -63,7 +63,7 @@ namespace VoidEngine
 
     DescriptorSetLayout::~DescriptorSetLayout()
     {
-         vkDestroyDescriptorSetLayout(device.device(), descriptorSetLayout, nullptr);
+         //vkDestroyDescriptorSetLayout(device.device(), descriptorSetLayout, nullptr);
     }
 
     // *************** Descriptor Pool Builder *********************

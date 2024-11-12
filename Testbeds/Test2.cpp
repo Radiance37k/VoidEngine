@@ -7,13 +7,13 @@
 int main()
 {
     VoidEngine::Game game{VkExtent2D(800, 600)};
-    VoidEngine::ModelManager modelManager;
-    VoidEngine::SceneManager sceneManager;
+    //VoidEngine::ModelManager modelManager;
+    //VoidEngine::SceneManager sceneManager;
 
     //auto* renderManager = new VoidEngine::RenderManager(*game.GetDevice(), nullptr, nullptr, game.GetResolution());
 
-    auto flatVase = modelManager.LoadModel(*game.GetDevice(), "fne");
-    sceneManager.AddGameObject(std::move(flatVase));
+    auto flatVase = game.modelManager->LoadModel(*game.GetDevice(), "models/flat_vase.obj");
+    game.AddGameObject(flatVase);
 
     game.run();
 

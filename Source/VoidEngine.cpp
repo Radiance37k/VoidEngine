@@ -7,26 +7,29 @@
 #include "PointLight.hpp"
 
 #include <chrono>
+#include <vector>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <vector>
-
 #include "External/glm/glm.hpp"
 //#include <External/glm/gtc/constants.hpp>
 
 namespace VoidEngine
 {
     Game::Game(VkExtent2D resolution)
+    //: renderManager(std::make_unique<RenderManager>(*device, *this, resolution))
     {
         //windowManager = new WindowManager(resolution.width, resolution.height, "Whoop");
         //cameraManager = new CameraManager();
         //inputManager = new InputManager();
         //lightSourceManager = new LightSourceManager();
         //modelManager = new ModelManager();
-        renderManager = new RenderManager(*device, resolution);
+        //renderManager = new RenderManager(*device, *this, resolution);
         //sceneManager = new SceneManager();
         //uiManager = new UIManager();
+
+        renderManager = std::make_unique<RenderManager>(*device, *this, resolution);
+        sceneManager = std::make_unique<SceneManager>();
 
         globalPool = DescriptorPool::Builder(*device)
             .setMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -46,7 +49,7 @@ namespace VoidEngine
     void Game::run()
     {
         std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
-        for (int i = 0; i < uboBuffers.size(); i++)
+            for (int i = 0; i < uboBuffers.size(); i++)
         {
             uboBuffers[i] = std::make_unique<Buffer>(
                 *device,
@@ -77,10 +80,12 @@ namespace VoidEngine
             globalSetLayout->getDescriptorSetLayout()};
             */
 
+        /*
         PointLight pointLight{
             *device,
             renderManager->GetRenderPass(),
             globalSetLayout->getDescriptorSetLayout()};
+        */
 
         Camera camera{};
 
@@ -101,10 +106,16 @@ namespace VoidEngine
             cameraController.moveInPlaneXZ(window->getGLFWwindow(), frameTime, viewerObject);
             camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
-            float aspect = renderer->getAspectRatio();
+            float aspect = renderManager->GetAspectRatio();
             camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
 
-            if (auto commandBuffer = renderer->beginFrame(renderManager->GetRenderPass()))
+            //if (auto commandBuffer = renderer->beginFrame(renderManager->GetRenderPass(), renderManager->GetSwapChain()))
+            auto queueToRender = RenderQueueType::OPAQUE;
+
+            auto commandBuffer = renderManager->GetQueueCommandBuffer(queueToRender);
+
+            // vkBeginCommandBuffer
+            if (renderer->beginFrame(commandBuffer, renderManager->GetRenderPass(), renderManager->GetSwapChain()))
             {
                 int frameIndex = renderer->getFrameIndex();
                 FrameInfo frameInfo{
@@ -121,20 +132,31 @@ namespace VoidEngine
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getView();
                 ubo.inverseView = camera.getInverseView();
-                pointLight.update(frameInfo, ubo);
+//                pointLight.update(frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
-                renderer->beginSwapChainRenderPass(commandBuffer, renderManager->GetRenderPass());
+                // vkCmdBeginRenderPass
+                renderer->beginSwapChainRenderPass(commandBuffer, renderManager->GetRenderPass(), renderManager->GetSwapChain());
                 //simpleRenderSystem.renderGameObjects(frameInfo);
-                renderManager->RenderObjectsInQueue(RenderQueueType::OPAQUE);
-                pointLight.render(frameInfo);
+                renderManager->UpdateDescriptorSet(renderManager->GetGlobalDescriptorSet(queueToRender), uboBuffers[frameIndex]->getBuffer());
+
+
+                renderManager->RenderObjectsInQueue(queueToRender, nullptr);
+//                pointLight.render(frameInfo);
+                //vkCmdEndRenderPass
                 renderer->endSwapChainRenderPass(commandBuffer);
-                renderer->endFrame(renderManager->GetRenderPass());
+                renderer->endFrame(renderManager->GetRenderPass(), renderManager->GetSwapChain(), commandBuffer);
             }
         }
 
         vkDeviceWaitIdle(device->device());
+    }
+
+    void Game::AddGameObject(GameObject& gameObject)//, RenderQueueType renderQueue)
+    {
+        renderManager->AddToRenderQueue(gameObject, RenderQueueType::OPAQUE);
+        sceneManager->AddGameObject(std::move(gameObject));
     }
 
     void Game::loadGameObjects()

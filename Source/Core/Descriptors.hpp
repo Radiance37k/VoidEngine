@@ -28,17 +28,18 @@ namespace VoidEngine
         };
 
         DescriptorSetLayout(
-            Device &_device, std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings);
+            Device &_device, const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& bindings);
         ~DescriptorSetLayout();
-        DescriptorSetLayout(const DescriptorSetLayout &) = delete;
-        DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
+        //DescriptorSetLayout(const DescriptorSetLayout &) = delete;
+        //DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
 
         VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
 
     private:
         Device &device;
-        VkDescriptorSetLayout descriptorSetLayout;
         std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings;
+
+        VkDescriptorSetLayout descriptorSetLayout{};
 
         friend class DescriptorWriter;
     };

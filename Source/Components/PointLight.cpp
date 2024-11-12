@@ -92,6 +92,7 @@ namespace VoidEngine
 
     void PointLight::render(FrameInfo& frameInfo)
     {
+        /*
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(
@@ -124,5 +125,6 @@ namespace VoidEngine
 
             vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
         }
+        */
     }
 }

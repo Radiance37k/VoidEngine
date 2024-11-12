@@ -1,38 +1,18 @@
-/// -------------------------------------------------------------------------------------------------------
-/// The RenderManager class oversees frame rendering, manages render queues, and coordinates with pipelines for different passes.
-/// Variables
-///
-/// RenderQueue renderQueue: Holds categorized game objects for different rendering needs.
-/// std::vector<RenderPipeline> renderPipelines: Stores various render pipelines(e.g., forward pass, shadow pass).
-/// VkDevice device: Vulkan device handle.
-/// std::vector<VkSemaphore> imageAvailableSemaphores: Synchronization for when an image is ready for rendering.
-/// std::vector<VkSemaphore> renderFinishedSemaphores: Synchronization for when rendering is complete.
-/// std::vector<VkFence> inFlightFences: Frame synchronization.
-/// Camera *camera: Reference to the active camera for view and projection matrices.
-///
-/// Functions
-///
-/// void Initialize(): Sets up Vulkan resources, render pipelines, and synchronization objects.
-/// void BeginFrame(): Prepares for a new frame by acquiring the next image, setting up the command buffer, etc.
-/// void SubmitFrame(): Submits the frame’s command buffer to the GPU, handles synchronization, and presents the image.
-/// void RenderScene(): Main function to sort the render queue, set up each render pipeline, and execute the render commands.
-/// void Cleanup(): Releases Vulkan resources and clears synchronization objects.
-/// -------------------------------------------------------------------------------------------------------
-
 #pragma once
 #include <memory>
 #include <optional>
-#include <stdexcept>
 
 #include "Camera.hpp"
 #include "SwapChain.hpp"
 #include "../Core/Device.hpp"
 #include "../Components/GameObject.hpp"
 #include "../Core/RenderPipeline.hpp"
-#include "../Core/FrameInfo.hpp"
 
 namespace VoidEngine
 {
+    // Forward declerations
+    class Game;
+
     enum class RenderQueueType
     {
         SKYBOX,
@@ -55,63 +35,31 @@ namespace VoidEngine
         std::vector<unsigned int> gameObjectIDs;
 
         RenderQueue() = default;
+        ~RenderQueue() = default;
 
         void AddToQueue(const GameObject& gameObject)
         {
             gameObjectIDs.push_back(gameObject.getId());
         }
 
-        void begin(VkPipelineLayout layout);
-    /*
-        {
-            {
-                // Start command buffer recording
-                VkCommandBufferBeginInfo beginInfo{};
-                beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // Use as appropriate
+        void SetDescriptor(VkDescriptorSet ds) { globalDescriptorSet = ds; }
 
-                if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-                    throw std::runtime_error("Failed to begin recording command buffer");
-                }
-
-                // Bind the camera's view/projection matrices if the camera is available
-                if (camera) {
-                    // Set up necessary camera parameters here, e.g., view/projection matrices
-                }
-
-                // Bind other resources (like global descriptor set)
-                vkCmdBindDescriptorSets(
-                    commandBuffer,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    layout, 0, 1,
-                    &globalDescriptorSet, 0, nullptr
-                );
-
-                // Further setup before actual rendering
-            }
-        }*/
-
-        void end();
-    /*
-        {
-            // Finish recording the command buffer
-            if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to record command buffer");
-            }
-        }*/
+        void renderQueueBegin(VkPipelineLayout layout);
+        void renderQueueEnd();
     };
 
     class RenderManager
     {
     public:
-        VOIDENGINE_API RenderManager(Device& device_, VkExtent2D resolution);
+        VOIDENGINE_API RenderManager(Device& device_, Game& gameInstance, VkExtent2D resolution);
         VOIDENGINE_API ~RenderManager();
 
         RenderManager(const RenderManager &) = delete;
         RenderManager &operator=(const RenderManager &) = delete;
+        //RenderManager(RenderManager&&) noexcept = default;
+        //RenderManager& operator=(RenderManager&&) noexcept = default;
 
-        void renderGameObjects(FrameInfo& frameInfo);
-        VOIDENGINE_API void RenderObjectsInQueue(const RenderQueueType& queueType);
+        VOIDENGINE_API void RenderObjectsInQueue(const RenderQueueType& queueType, VkBuffer ubo);
 
         VOIDENGINE_API void AddToRenderQueue(const GameObject& gameObject, RenderQueueType queueType);
 
@@ -119,26 +67,35 @@ namespace VoidEngine
 
         static VkFormat FindDepthFormat(Device& device);
 
-        static  RenderManager& getInstance(Device& device_, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, VkExtent2D resolution)
-        {
-            static RenderManager instance(device_, resolution);
-            return instance;
-        }
+        float GetAspectRatio() { return swapChain_->extentAspectRatio(); }
+        SwapChain& GetSwapChain() { return *swapChain_; }
+        VkCommandBuffer& GetQueueCommandBuffer(RenderQueueType queue) { return renderQueue[queue].commandBuffer; }
+        void UpdateDescriptorSet(VkDescriptorSet destSet, VkBuffer uboBuffer);
+        VkDescriptorSet GetGlobalDescriptorSet(RenderQueueType queue) { return renderQueue[queue].globalDescriptorSet; }
+        RenderQueue& GetRenderQueue(RenderQueueType queue) { return renderQueue[queue]; }
 
     private:
+        void allocateCommandBuffers(VkCommandBuffer& commandBuffer);
         void createRenderPass();
         void createRenderPass(VkFormat imageFormat);
-        void createPipelineLayout();
+        void createPipelineLayout(VkDescriptorSetLayout layout);
         void createPipeline(VkRenderPass renderPass);
 
+        void createSwapChain(VkFormat depthFormat, VkRenderPass renderPass, VkExtent2D extent);
+
+        void createDescriptorSetLayout();
+        void createDescriptorSetPool();
+        void allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet& decriptorSet);
+
+        Game& game_;
         Device& device;
 
         std::unique_ptr<RenderPipeline> pipeline;
         VkPipelineLayout pipelineLayout{};
 
-        std::unordered_map<RenderQueueType, RenderQueue> renderQueue;
+        VkDescriptorPool descriptorPool{};
 
-        VkDescriptorSetLayout globalSetLayout{};
+        std::unordered_map<RenderQueueType, RenderQueue> renderQueue;
 
         VkRenderPass renderPass{};
         std::unique_ptr<SwapChain> swapChain_{};

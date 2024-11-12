@@ -37,12 +37,16 @@ namespace VoidEngine
         configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+        configInfo.inputAssemblyInfo.pNext = nullptr;
+        configInfo.inputAssemblyInfo.flags = 0;
 
         configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         configInfo.viewportInfo.viewportCount = 1;
         configInfo.viewportInfo.pViewports = nullptr;
         configInfo.viewportInfo.scissorCount = 1;
         configInfo.viewportInfo.pScissors = nullptr;
+        configInfo.viewportInfo.pNext = nullptr;
+        configInfo.viewportInfo.flags = 0;
 
         configInfo.rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         configInfo.rasterizationInfo.depthClampEnable = VK_FALSE;
@@ -55,6 +59,8 @@ namespace VoidEngine
         configInfo.rasterizationInfo.depthBiasConstantFactor = 0.0f;  // Optional
         configInfo.rasterizationInfo.depthBiasClamp = 0.0f;           // Optional
         configInfo.rasterizationInfo.depthBiasSlopeFactor = 0.0f;     // Optional
+        configInfo.rasterizationInfo.pNext = nullptr;
+        configInfo.rasterizationInfo.flags = 0;
 
         configInfo.multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         configInfo.multisampleInfo.sampleShadingEnable = VK_FALSE;
@@ -63,6 +69,8 @@ namespace VoidEngine
         configInfo.multisampleInfo.pSampleMask = nullptr;             // Optional
         configInfo.multisampleInfo.alphaToCoverageEnable = VK_FALSE;  // Optional
         configInfo.multisampleInfo.alphaToOneEnable = VK_FALSE;       // Optional
+        configInfo.multisampleInfo.pNext = nullptr;
+        configInfo.multisampleInfo.flags = 0;
 
         configInfo.colorBlendAttachment.colorWriteMask =
           VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
@@ -85,11 +93,14 @@ namespace VoidEngine
         configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
         configInfo.depthStencilInfo.front = {};  // Optional
         configInfo.depthStencilInfo.back = {};   // Optional
+        configInfo.depthStencilInfo.pNext = nullptr;
+        configInfo.depthStencilInfo.flags = 0;
 
         configInfo.dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStates.data();
         configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStates.size());
+        configInfo.dynamicStateInfo.pNext = nullptr;
         configInfo.dynamicStateInfo.flags = 0;
 
         configInfo.bindingDescriptions = Model::Vertex::getBindingDescriptions();
@@ -97,25 +108,6 @@ namespace VoidEngine
 
         assert(!configInfo.bindingDescriptions.empty() && "bindingDescriptions is empty!");
         assert(!configInfo.attributeDescriptions.empty() && "attributeDescriptions is empty!");
-
-        configInfo.inputAssemblyInfo.pNext = nullptr;
-        configInfo.inputAssemblyInfo.flags = 0;
-
-        configInfo.viewportInfo.pNext = nullptr;
-        configInfo.viewportInfo.flags = 0;
-
-        configInfo.rasterizationInfo.pNext = nullptr;
-        configInfo.rasterizationInfo.flags = 0;
-
-        configInfo.multisampleInfo.pNext = nullptr;
-        configInfo.multisampleInfo.flags = 0;
-
-        configInfo.depthStencilInfo.pNext = nullptr;
-        configInfo.depthStencilInfo.flags = 0;
-
-        configInfo.dynamicStateInfo.pNext = nullptr;
-        configInfo.dynamicStateInfo.flags = 0;
-
 
         return configInfo;
     }
@@ -212,8 +204,7 @@ namespace VoidEngine
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        VkResult r = vkCreateGraphicsPipelines(device.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
-        if (r != VK_SUCCESS)
+        if (vkCreateGraphicsPipelines(device.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create graphics pipeline.");
         }
@@ -225,6 +216,8 @@ namespace VoidEngine
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
 
         if (vkCreateShaderModule(device.device(), &createInfo, nullptr, shaderModule) != VK_SUCCESS)
         {

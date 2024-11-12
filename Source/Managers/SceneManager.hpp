@@ -1,5 +1,6 @@
 #pragma once
 #include "GameObject.hpp"
+#include "RenderManager.hpp"
 
 namespace VoidEngine
 {
@@ -11,7 +12,7 @@ namespace VoidEngine
 
         VOIDENGINE_API void AddGameObject(GameObject&& gameObject);
         VOIDENGINE_API void AddGameObject(unsigned int id, GameObject&& gameObject);
-        VOIDENGINE_API static GameObject* FindGameObject(unsigned int id);
+        VOIDENGINE_API GameObject* FindGameObject(unsigned int id);
 
         // Singleton access
         static SceneManager& getInstance()
@@ -22,6 +23,6 @@ namespace VoidEngine
 
     private:
         //GameObject root_; // The root gameobject
-        std::unordered_map<unsigned int, GameObject> gameObjects_;
+        std::unordered_map<unsigned int, GameObject> gameObjects_{};
     };
 } // VoidEngine

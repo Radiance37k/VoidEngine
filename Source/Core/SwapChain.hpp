@@ -40,6 +40,9 @@ namespace VoidEngine
 
         void createSwapChain();
 
+        std::vector<VkFence> inFlightFences;
+        std::vector<VkFence> imagesInFlight;
+
     private:
         void init(VkFormat depthFormat, VkRenderPass renderPass);
         void createImageViews();
@@ -73,8 +76,6 @@ namespace VoidEngine
 
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
-        std::vector<VkFence> inFlightFences;
-        std::vector<VkFence> imagesInFlight;
         size_t currentFrame = 0;
     };
 } // VoidEngine
