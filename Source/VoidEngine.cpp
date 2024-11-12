@@ -12,22 +12,11 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "External/glm/glm.hpp"
-//#include <External/glm/gtc/constants.hpp>
 
 namespace VoidEngine
 {
     Game::Game(VkExtent2D resolution)
-    //: renderManager(std::make_unique<RenderManager>(*device, *this, resolution))
     {
-        //windowManager = new WindowManager(resolution.width, resolution.height, "Whoop");
-        //cameraManager = new CameraManager();
-        //inputManager = new InputManager();
-        //lightSourceManager = new LightSourceManager();
-        //modelManager = new ModelManager();
-        //renderManager = new RenderManager(*device, *this, resolution);
-        //sceneManager = new SceneManager();
-        //uiManager = new UIManager();
-
         renderManager = std::make_unique<RenderManager>(*device, *this, resolution);
         sceneManager = std::make_unique<SceneManager>();
 
@@ -49,7 +38,7 @@ namespace VoidEngine
     void Game::run()
     {
         std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
-            for (int i = 0; i < uboBuffers.size(); i++)
+        for (int i = 0; i < uboBuffers.size(); i++)
         {
             uboBuffers[i] = std::make_unique<Buffer>(
                 *device,
@@ -73,19 +62,10 @@ namespace VoidEngine
                 .build(globalDescriptorSets[i]);
         }
 
-        /*
-        RenderManager simpleRenderSystem{
-            *device,
-            renderer.getSwapChainRenderPass(),
-            globalSetLayout->getDescriptorSetLayout()};
-            */
-
-        /*
         PointLight pointLight{
             *device,
             renderManager->GetRenderPass(),
             globalSetLayout->getDescriptorSetLayout()};
-        */
 
         Camera camera{};
 
@@ -109,7 +89,6 @@ namespace VoidEngine
             float aspect = renderManager->GetAspectRatio();
             camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
 
-            //if (auto commandBuffer = renderer->beginFrame(renderManager->GetRenderPass(), renderManager->GetSwapChain()))
             auto queueToRender = RenderQueueType::OPAQUE;
 
             auto commandBuffer = renderManager->GetQueueCommandBuffer(queueToRender);
@@ -132,18 +111,17 @@ namespace VoidEngine
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getView();
                 ubo.inverseView = camera.getInverseView();
-//                pointLight.update(frameInfo, ubo);
+                pointLight.update(frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
                 // vkCmdBeginRenderPass
                 renderer->beginSwapChainRenderPass(commandBuffer, renderManager->GetRenderPass(), renderManager->GetSwapChain());
-                //simpleRenderSystem.renderGameObjects(frameInfo);
                 renderManager->UpdateDescriptorSet(renderManager->GetGlobalDescriptorSet(queueToRender), uboBuffers[frameIndex]->getBuffer());
 
 
                 renderManager->RenderObjectsInQueue(queueToRender, nullptr);
-//                pointLight.render(frameInfo);
+                pointLight.render(frameInfo);
                 //vkCmdEndRenderPass
                 renderer->endSwapChainRenderPass(commandBuffer);
                 renderer->endFrame(renderManager->GetRenderPass(), renderManager->GetSwapChain(), commandBuffer);
@@ -161,35 +139,8 @@ namespace VoidEngine
 
     void Game::loadGameObjects()
     {
-        std::shared_ptr<Model> model;
-
-        /*
-        model = Model::createModelFromFile(*device, "models/flat_vase.obj");
-        auto flatVase = GameObject::createGameObject();
-        flatVase.model = model;
-        flatVase.transform.translation = {-0.5f, 0.5f, 0.0f};
-        flatVase.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObjects.emplace(flatVase.getId(), std::move(flatVase));
-        */
-
-        model = Model::createModelFromFile(*device, "models/smooth_vase.obj");
-        auto smoothVase = GameObject::createGameObject();
-        smoothVase.model = model;
-        smoothVase.transform.translation = {0.5f, 0.5f, 0.0f};
-        smoothVase.transform.scale = {3.0f, 1.5f, 3.0f};
-        gameObjects.emplace(smoothVase.getId(), std::move(smoothVase));
-
-        model = Model::createModelFromFile(*device, "models/quad.obj");
-        auto floor = GameObject::createGameObject();
-        floor.model = model;
-        floor.transform.translation = {0.0f, 0.5f, 0.0f};
-        floor.transform.scale = {3.0f, 1.0f, 3.0f};
-        gameObjects.emplace(floor.getId(), std::move(floor));
-
-        {
-            auto pointLight = GameObject::makePointLight(0.2f);
-            gameObjects.emplace(pointLight.getId(), std::move(pointLight));
-        }
+        auto pointLight = GameObject::makePointLight(0.2f);
+        gameObjects.emplace(pointLight.getId(), std::move(pointLight));
 
         std::vector<glm::vec3> lightColors{
             {1.f, .1f, .1f},

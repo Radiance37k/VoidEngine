@@ -17,6 +17,7 @@ namespace VoidEngine
     {
         SKYBOX,
         OPAQUE,
+        LIGHT,
         SHADOW,
         TRANSPARENT,
         REFLECTION,

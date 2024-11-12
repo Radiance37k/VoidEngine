@@ -70,6 +70,7 @@ namespace VoidEngine
          */
         renderQueue[RenderQueueType::SKYBOX] = RenderQueue();
         renderQueue[RenderQueueType::OPAQUE] = RenderQueue();
+        renderQueue[RenderQueueType::LIGHT] = RenderQueue();
         renderQueue[RenderQueueType::SHADOW] = RenderQueue();
         renderQueue[RenderQueueType::TRANSPARENT] = RenderQueue();
         renderQueue[RenderQueueType::REFLECTION] = RenderQueue();
@@ -91,6 +92,7 @@ namespace VoidEngine
 
         allocateCommandBuffers(renderQueue[RenderQueueType::SKYBOX].commandBuffer);
         allocateCommandBuffers(renderQueue[RenderQueueType::OPAQUE].commandBuffer);
+        allocateCommandBuffers(renderQueue[RenderQueueType::LIGHT].commandBuffer);
         allocateCommandBuffers(renderQueue[RenderQueueType::SHADOW].commandBuffer);
         allocateCommandBuffers(renderQueue[RenderQueueType::TRANSPARENT].commandBuffer);
         allocateCommandBuffers(renderQueue[RenderQueueType::REFLECTION].commandBuffer);
