@@ -64,16 +64,7 @@ namespace VoidEngine
 
     Device::~Device()
     {
-        vkDestroyCommandPool(device_, commandPool, nullptr);
-        vkDestroyDevice(device_, nullptr);
-
-        if (enableValidationLayers)
-        {
-          DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-        }
-
-        vkDestroySurfaceKHR(instance, surface_, nullptr);
-        vkDestroyInstance(instance, nullptr);
+        cleanup();
     }
 
     void Device::createInstance()
@@ -215,6 +206,34 @@ namespace VoidEngine
         if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create command pool!");
+        }
+    }
+
+    void Device::cleanup() {
+        if (device_ != VK_NULL_HANDLE) {
+            vkDestroyCommandPool(device_, commandPool, nullptr);
+            vkDestroyDevice(device_, nullptr);
+        }
+
+        if (surface_ != VK_NULL_HANDLE) {
+            vkDestroySurfaceKHR(instance, surface_, nullptr);
+        }
+
+        if (enableValidationLayers)
+        {
+            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        }
+
+        if (debugMessenger != VK_NULL_HANDLE) {
+            auto destroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+                vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+            if (destroyDebugUtilsMessengerEXT != nullptr) {
+                destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+            }
+        }
+
+        if (instance != VK_NULL_HANDLE) {
+            vkDestroyInstance(instance, nullptr);
         }
     }
 

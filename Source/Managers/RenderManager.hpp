@@ -1,18 +1,21 @@
 #pragma once
+#include <complex.h>
 #include <memory>
 #include <optional>
 
+#include "Buffer.hpp"
 #include "Camera.hpp"
 #include "SwapChain.hpp"
 #include "../Core/Device.hpp"
-#include "../Components/GameObject.hpp"
 #include "../Core/RenderPipeline.hpp"
 
 namespace VoidEngine
 {
     // Forward declerations
     class Game;
+    class GameObject;
 
+    /*
     enum class RenderQueueType
     {
         SKYBOX,
@@ -23,35 +26,41 @@ namespace VoidEngine
         REFLECTION,
         UI,
         POSTPROCESSING,
-        DEBUG
+        DEBUG,
+        COUNT
+    };
+    */
+
+    enum class RenderQueueType
+    {
+        OPAQUE,
+        LIGHT,
+        COUNT
     };
 
     struct RenderQueue
     {
-        int frameIndex;
-        float frameTime;
-        VkCommandBuffer commandBuffer;
-        std::optional<Camera*> camera;
-        VkDescriptorSet globalDescriptorSet;
-        std::vector<unsigned int> gameObjectIDs;
-
         RenderQueue() = default;
         ~RenderQueue() = default;
 
-        void AddToQueue(const GameObject& gameObject)
-        {
-            gameObjectIDs.push_back(gameObject.getId());
-        }
+        Camera* camera = nullptr;
+        std::vector<unsigned int> gameObjectIDs;
 
-        void SetDescriptor(VkDescriptorSet ds) { globalDescriptorSet = ds; }
+        VkDescriptorSet descriptorSet;
 
-        void renderQueueBegin(VkPipelineLayout layout);
-        void renderQueueEnd();
+        std::unique_ptr<RenderPipeline> pipeline;
+
+        void AddToQueue(const GameObject& gameObject);
+
+        unsigned int GetNumObjects() const { return gameObjectIDs.size(); }
+        void SetDescriptor(VkDescriptorSet ds) { descriptorSet = ds; }
     };
 
     class RenderManager
     {
     public:
+        void createFrameBuffers(Device &device, SwapChain &swapChain, VkRenderPass pass);
+
         VOIDENGINE_API RenderManager(Device& device_, Game& gameInstance, VkExtent2D resolution);
         VOIDENGINE_API ~RenderManager();
 
@@ -60,45 +69,37 @@ namespace VoidEngine
         //RenderManager(RenderManager&&) noexcept = default;
         //RenderManager& operator=(RenderManager&&) noexcept = default;
 
-        VOIDENGINE_API void RenderObjectsInQueue(const RenderQueueType& queueType, VkBuffer ubo);
-
+        VOIDENGINE_API void RenderObjectsInQueue(const RenderQueue& queue, VkCommandBuffer cmdBuffer);
         VOIDENGINE_API void AddToRenderQueue(const GameObject& gameObject, RenderQueueType queueType);
-
-        VkRenderPass GetRenderPass() const;
 
         static VkFormat FindDepthFormat(Device& device);
 
-        float GetAspectRatio() { return swapChain_->extentAspectRatio(); }
-        SwapChain& GetSwapChain() { return *swapChain_; }
-        VkCommandBuffer& GetQueueCommandBuffer(RenderQueueType queue) { return renderQueue[queue].commandBuffer; }
-        void UpdateDescriptorSet(VkDescriptorSet destSet, VkBuffer uboBuffer);
-        VkDescriptorSet GetGlobalDescriptorSet(RenderQueueType queue) { return renderQueue[queue].globalDescriptorSet; }
-        RenderQueue& GetRenderQueue(RenderQueueType queue) { return renderQueue[queue]; }
+        float GetAspectRatio() const { return swapChain_->extentAspectRatio(); }
+        SwapChain& GetSwapChain() const { return *swapChain_; }
+        VkCommandBuffer& GetQueueCommandBuffer(RenderQueueType queue) { return commandBuffer; }
+        void UpdateDescriptorSet(VkDescriptorSet destSet, const std::vector<std::unique_ptr<Buffer>> &uboBuffers, uint32_t currentFrame) const;
+        VkDescriptorSet GetDescriptorSet(RenderQueueType queue) { return renderQueue[queue]->descriptorSet; }
+        RenderQueue& GetRenderQueue(const RenderQueueType queue) const { return *renderQueue.at(queue); }
+        std::vector<VkFramebuffer>& GetFramebuffers() { return framebuffers; }
 
     private:
         void allocateCommandBuffers(VkCommandBuffer& commandBuffer);
-        void createRenderPass();
-        void createRenderPass(VkFormat imageFormat);
-        void createPipelineLayout(VkDescriptorSetLayout layout);
-        void createPipeline(VkRenderPass renderPass);
-
+        void createRenderPass(VkRenderPass& renderPass, VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM);
+        void createPipelineLayout(RenderQueue& renderQueue, VkDescriptorSetLayout layout);
         void createSwapChain(VkFormat depthFormat, VkRenderPass renderPass, VkExtent2D extent);
-
-        void createDescriptorSetLayout();
         void createDescriptorSetPool();
         void allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet& decriptorSet);
 
         Game& game_;
         Device& device;
 
-        std::unique_ptr<RenderPipeline> pipeline;
-        VkPipelineLayout pipelineLayout{};
+        std::vector<VkFramebuffer> framebuffers;
 
         VkDescriptorPool descriptorPool{};
 
-        std::unordered_map<RenderQueueType, RenderQueue> renderQueue;
+        std::unordered_map<RenderQueueType, std::unique_ptr<RenderQueue>> renderQueue{};
 
-        VkRenderPass renderPass{};
         std::unique_ptr<SwapChain> swapChain_{};
+        VkCommandBuffer commandBuffer;
     };
 }

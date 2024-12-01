@@ -16,7 +16,7 @@ namespace VoidEngine
     class Renderer
     {
     public:
-        Renderer(Window &window, Device &device, VkFormat depthFormat, VkRenderPass renderPass);
+        Renderer(Window &window, Device &device, VkFormat depthFormat);//, VkRenderPass renderPass);
         ~Renderer();
 
         Renderer(const Renderer &) = delete;
@@ -36,12 +36,12 @@ namespace VoidEngine
             return currentFrameIndex;
         }
 
-        bool beginFrame(VkCommandBuffer& commandBuffer, VkRenderPass renderPass, SwapChain& swapChain);
-        void endFrame(VkRenderPass renderPass, SwapChain& swapChain, VkCommandBuffer& commandBuffer);
-        void beginSwapChainRenderPass(VkCommandBuffer& commandBuffer, VkRenderPass renderPass, SwapChain& swapChain);
+        VkCommandBuffer beginFrame(SwapChain &swapChain);
+        void endFrame(SwapChain &swapChain, VkCommandBuffer &commandBuffer);
+        void beginSwapChainRenderPass(VkCommandBuffer &commandBuffer, VkRenderPass renderPass, SwapChain &swapChain, std::vector<VkFramebuffer> framebuffers);
         void endSwapChainRenderPass(VkCommandBuffer& commandBuffer);
 
-        uint32_t GetCurrentImageIndex() { return currentImageIndex; }
+        uint32_t GetCurrentImageIndex() const { return currentImageIndex; }
 
     private:
         void createCommandBuffers();

@@ -9,7 +9,7 @@
 
 namespace VoidEngine
 {
-    Renderer::Renderer(Window& window, Device& device, VkFormat depthFormat, VkRenderPass renderPass)
+    Renderer::Renderer(Window& window, Device& device, VkFormat depthFormat)//, VkRenderPass renderPass)
     : window{window}, device{device}
     {
         //recreateSwapChain(depthFormat, renderPass);
@@ -44,18 +44,19 @@ namespace VoidEngine
         commandBuffers.clear();
     }
 
-    bool Renderer::beginFrame(VkCommandBuffer& commandBuffer, VkRenderPass renderPass, SwapChain& swapChain)
+    VkCommandBuffer Renderer::beginFrame(SwapChain &swapChain)
     {
         assert(!isFrameStarted && "Can't call beginFrame while already in progress");
+
+        //vkWaitForFences(device.device(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        //vkResetFences(device.device(), 1, &inFlightFences[currentFrame]);
 
         auto result = swapChain.acquireNextImage(&currentImageIndex);
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
-            //recreateSwapChain(RenderManager::FindDepthFormat(device), renderPass);
-            return false;
-        }
-
-        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+            //recreateSwapChain(RenderManager::FindDepthFormat(device));
+            return nullptr;
+        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
         {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
@@ -63,26 +64,26 @@ namespace VoidEngine
         isFrameStarted = true;
 
         //auto commandBuffer = getCurrentCommandBuffer();
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        //vkWaitForFences(device.device(), 1, &swapChain.inFlightFences[currentImageIndex], VK_TRUE, UINT64_MAX);
-        //vkWaitForFences(device.device(), 1, &swapChain.imagesInFlight[currentImageIndex], VK_TRUE, UINT64_MAX);
-        //vkResetFences(device.device(), 1, &swapChain.inFlightFences[currentImageIndex]);
 
         // Todo: Do a more elegant wait here
         vkDeviceWaitIdle(device.device());
 
-        //vkResetCommandBuffer(commandBuffer, 0);
+        VkCommandBuffer commandBuffer = commandBuffers[swapChain.GetCurrentFrame()];
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkResetCommandBuffer(commandBuffer, 0);
 
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
-        return true;
+
+        return commandBuffer;
     }
 
-    void Renderer::endFrame(VkRenderPass renderPass, SwapChain& swapChain, VkCommandBuffer& commandBuffer)
+    void Renderer::endFrame(SwapChain& swapChain, VkCommandBuffer& commandBuffer)
     {
         assert(isFrameStarted && "Can't call endFrame while frame is not in progress");
         //auto commandBuffer = getCurrentCommandBuffer();
@@ -106,7 +107,7 @@ namespace VoidEngine
         currentFrameIndex = (currentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
     }
 
-    void Renderer::beginSwapChainRenderPass(VkCommandBuffer& commandBuffer, VkRenderPass renderPass, SwapChain& swapChain)
+    void Renderer::beginSwapChainRenderPass(VkCommandBuffer& commandBuffer, VkRenderPass renderPass, SwapChain& swapChain, std::vector<VkFramebuffer> framebuffers)
     {
         assert(isFrameStarted && "Can't call beginSwapChainRenderPass if frame is not in progress");
         /*
@@ -118,10 +119,10 @@ namespace VoidEngine
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;//swapChain->getRenderPass();
-        renderPassInfo.framebuffer = swapChain.getFrameBuffer(currentImageIndex);
+        renderPassInfo.framebuffer = framebuffers[currentImageIndex];
 
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChain.getSwapChainExtent();
+        renderPassInfo.renderArea.extent = swapChain.GetSwapChainExtent();
 
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {0.01f, 0.01f, 0.01f, 1.0f};
@@ -134,11 +135,11 @@ namespace VoidEngine
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = static_cast<float>(swapChain.getSwapChainExtent().width);
-        viewport.height = static_cast<float>(swapChain.getSwapChainExtent().height);
+        viewport.width = static_cast<float>(swapChain.GetSwapChainExtent().width);
+        viewport.height = static_cast<float>(swapChain.GetSwapChainExtent().height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        VkRect2D scissor{{0, 0}, swapChain.getSwapChainExtent()};
+        VkRect2D scissor{{0, 0}, swapChain.GetSwapChainExtent()};
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     }

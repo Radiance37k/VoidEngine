@@ -2,22 +2,17 @@
 
 #include "Common.hpp"
 #include "Window.hpp"
-#include "Device.hpp"
 #include "Renderer.hpp"
 #include "Descriptors.hpp"
 #include "GameObject.hpp"
-#include "RenderManager.hpp"
 #include "CameraManager.hpp"
+#include "FrameInfo.hpp"
 #include "InputManager.hpp"
 #include "LightSourceManager.hpp"
 #include "ModelManager.hpp"
 #include "SceneManager.hpp"
 #include "UIManager.hpp"
 #include "WindowManager.hpp"
-
-#include <iostream>
-
-#include "FrameInfo.hpp"
 
 namespace VoidEngine
 {
@@ -27,7 +22,7 @@ namespace VoidEngine
         static constexpr int WIDTH = 800;
         static constexpr int HEIGHT = 600;
 
-        VOIDENGINE_API explicit Game(VkExtent2D resolution = {800, 600});
+        VOIDENGINE_API explicit Game(VkExtent2D resolution = {WIDTH, HEIGHT});
         VOIDENGINE_API ~Game();
 
         VOIDENGINE_API void run();
@@ -37,20 +32,24 @@ namespace VoidEngine
 
         VOIDENGINE_API inline SceneManager* GetSceneManager() const { return sceneManager.get(); }
 
-        VOIDENGINE_API void AddGameObject(GameObject& gameObject);//, RenderQueueType renderQueue = RenderQueueType::OPAQUE);
+        //template <typename T, typename... Args>
+        //VOIDENGINE_API T* AddGameObject(RenderQueueType renderQueue = RenderQueueType::OPAQUE, Args&&... args);
+        VOIDENGINE_API void AddGameObject(GameObject* gameObject, RenderQueueType renderQueue = RenderQueueType::OPAQUE) const;
 
         std::unique_ptr<CameraManager> cameraManager;
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<LightSourceManager> lightSourceManager;
+        //LightSourceManager* lightSourceManager;
         std::unique_ptr<ModelManager> modelManager;
-        std::unique_ptr<RenderManager> renderManager;
+        //std::unique_ptr<RenderManager> renderManager;
+        RenderManager* renderManager;
         std::unique_ptr<SceneManager> sceneManager;
         std::unique_ptr<UIManager> uiManager;
         std::unique_ptr<WindowManager> windowManager;
 
-    private:
-        void loadGameObjects();
+        std::unique_ptr<GlobalUbo> ubo{};
 
+    private:
         Window* window = new Window(WIDTH, HEIGHT, "Hello Vulkan");
         Device* device = new Device(*window);
         Renderer* renderer;
@@ -59,6 +58,6 @@ namespace VoidEngine
 
         // Note: Order of declerations matter
         std::unique_ptr<DescriptorPool> globalPool;
-        GameObject::Map gameObjects;
+        std::unordered_map<unsigned int, GameObject> gameObjects;
     };
 }

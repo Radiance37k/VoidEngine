@@ -1,8 +1,7 @@
 #pragma once
-#include <../Core/Device.hpp>
-#include <../Core/Buffer.hpp>
-
-//#include <Vertex.hpp>
+#include "Common.hpp"
+#include "Device.hpp"
+#include "Buffer.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -31,37 +30,45 @@ namespace VoidEngine {
             }
         };
 
-        struct Builder
-        {
-            std::vector<Vertex> vertices{};
-            std::vector<uint32_t> indices{};
-
-            void loadModel(const std::string& filepath);
-        };
-
-        Model(Device& _device, const Model::Builder &builder);
-        ~Model();
+        //VOIDENGINE_API Model(Device& _device, const Model::Builder &builder);
+        VOIDENGINE_API explicit Model(Device& _device);
+        VOIDENGINE_API virtual ~Model();
 
         //Model(const Model &) = delete;
         //Model &operator=(const Model &) = delete;
 
-        static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filepath);
+        //void CreateBuffers();
 
-        void bind(VkCommandBuffer commandBuffer);
-        void draw(VkCommandBuffer commandBuffer);
+        //VOIDENGINE_API void LoadModelFromFile(const std::string &filepath);
+        //VOIDENGINE_API static std::unique_ptr<Model> createModelFromFile(Device& device, const std::string& filepath);
+
+        void bind(VkCommandBuffer commandBuffer) const;
+        void draw(VkCommandBuffer commandBuffer) const;
+
+        std::unique_ptr<Buffer> vertexBuffer;
+        std::unique_ptr<Buffer> indexBuffer;
+        bool hasIndexBuffer = false;
+        uint32_t vertexCount;
+        uint32_t indexCount;
+
+        //void SetVertices(const std::vector<Vertex> &v) { vertices = v; }
+        void Clear();
+        uint32_t NumVertices() const { return vertices.size(); }
+        void AddVertex(Vertex vertex) { vertices.push_back(vertex); }
+        void AddIndex(uint32_t index) { indices.push_back(index); }
+
+        VOIDENGINE_API void LoadModelFromFile(const std::string &filepath);
+
+        void CreateBuffers();
 
     private:
         void createVertexBuffers(const std::vector<Vertex> &vertices);
         void createIndexBuffers(const std::vector<uint32_t> &indices);
 
+        std::vector<Vertex> vertices{};
+        std::vector<uint32_t> indices{};
+
         Device& device;
-
-        std::unique_ptr<Buffer> vertexBuffer;
-        uint32_t vertexCount;
-
-        bool hasIndexBuffer = false;
-        std::unique_ptr<Buffer> indexBuffer;
-        uint32_t indexCount;
     };
 
 }

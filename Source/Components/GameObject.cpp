@@ -1,79 +1,53 @@
 #include "GameObject.hpp"
+#include "VoidEngine.hpp"
 
 namespace VoidEngine
 {
-    glm::mat4 TransformComponent::mat4()
+    std::atomic<unsigned int> GameObject::nextId{0};
+
+
+    GameObject::GameObject(unsigned int objId, Game* game) : game_(*game), id(objId), device_(*game->GetDevice())
+    //, model(device_)
     {
-        const float c3 = glm::cos(rotation.z);
-        const float s3 = glm::sin(rotation.z);
-        const float c2 = glm::cos(rotation.x);
-        const float s2 = glm::sin(rotation.x);
-        const float c1 = glm::cos(rotation.y);
-        const float s1 = glm::sin(rotation.y);
-        return glm::mat4{
-                {
-                    scale.x * (c1 * c3 + s1 * s2 * s3),
-                    scale.x * (c2 * s3),
-                    scale.x * (c1 * s2 * s3 - c3 * s1),
-                    0.0f,
-                },
-                {
-                    scale.y * (c3 * s1 * s2 - c1 * s3),
-                    scale.y * (c2 * c3),
-                    scale.y * (c1 * c3 * s2 + s1 * s3),
-                    0.0f,
-                },
-                {
-                    scale.z * (c2 * s1),
-                    scale.z * (-s2),
-                    scale.z * (c1 * c2),
-                    0.0f,
-                },
-                {translation.x, translation.y, translation.z, 1.0f}};
+        init();
     }
 
-    glm::mat3 TransformComponent::normalMatrix()
+    GameObject::GameObject(Game* game) : game_(*game),  id(nextId++), device_(*game->GetDevice())//, model(device_)
     {
-        const float c3 = glm::cos(rotation.z);
-        const float s3 = glm::sin(rotation.z);
-        const float c2 = glm::cos(rotation.x);
-        const float s2 = glm::sin(rotation.x);
-        const float c1 = glm::cos(rotation.y);
-        const float s1 = glm::sin(rotation.y);
-        const glm::vec3 invScale = 1.0f / scale;
-
-        return glm::mat3{
-                    {
-                        invScale.x * (c1 * c3 + s1 * s2 * s3),
-                        invScale.x * (c2 * s3),
-                        invScale.x * (c1 * s2 * s3 - c3 * s1),
-                    },
-                    {
-                        invScale.y * (c3 * s1 * s2 - c1 * s3),
-                        invScale.y * (c2 * c3),
-                        invScale.y * (c1 * c3 * s2 + s1 * s3),
-                    },
-                    {
-                        invScale.z * (c2 * s1),
-                        invScale.z * (-s2),
-                        invScale.z * (c1 * c2),
-                    },
-            };
+        init();
     }
 
-    GameObject GameObject::makePointLight(float intensity, float radius, glm::vec3 color)
+    GameObject::GameObject(GameObject&& other) noexcept
+        : device_(other.device_), id(other.id), transform(other.transform), game_(other.game_)
     {
-        GameObject gameObj = GameObject::createGameObject();
-        gameObj.color = color;
-        gameObj.transform.scale.x = radius;
-        gameObj.pointLight = std::make_unique<PointLightComponent>();
-        gameObj.pointLight->lightIntensity = intensity;
-        return gameObj;
+        // Ensure the moved object is in a valid state
+        other.id = 0;
     }
 
-    void GameObject::AddChild(GameObject *child)
+    GameObject& GameObject::operator=(GameObject&& other) noexcept {
+        if (this == &other)
+            return *this; // Handle self-assignment
+
+        //device_ = other.device_; // Reassign device reference
+        id = other.id;
+        //model = std::move(other.model); // Transfer ownership of model
+        transform = other.transform; // Move transform
+
+        // Invalidate the moved object
+        other.id = 0;
+
+        return *this;
+    }
+
+    void GameObject::Update()
     {
-        child->parent_ = this;
-        children_.push_back(child);
+        // Derived classes should call:
+        // GameObject::Update();
+    }
+
+    void GameObject::init()
+    {
+        //model = new Model(device_);
+        //model = std::make_unique<Model>(device_);
     }
 }

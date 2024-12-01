@@ -9,8 +9,6 @@
 #include "External/glm/gtx/hash.hpp"
 
 #include <cassert>
-#include <cstring>
-#include <unordered_map>
 
 namespace std
 {
@@ -26,7 +24,8 @@ namespace std
     };
 }
 
-namespace VoidEngine {
+namespace VoidEngine
+{
     std::vector<VkVertexInputBindingDescription> Model::Vertex::getBindingDescriptions()
     {
         std::vector<VkVertexInputBindingDescription> bindingDescriptions(1);
@@ -46,31 +45,18 @@ namespace VoidEngine {
         attributeDescriptions.push_back({2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
         attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
 
-
-
         return attributeDescriptions;
     }
 
-    Model::Model(Device& _device, const Model::Builder &builder) : device{_device}
+    Model::Model(Device& _device) : vertexCount(0), indexCount(0), device(_device)
     {
-        createVertexBuffers(builder.vertices);
-        createIndexBuffers(builder.indices);
+        //createVertexBuffers(builder.vertices);
+        //createIndexBuffers(builder.indices);
     }
 
-    Model::~Model()
-    {
+    Model::~Model() = default;
 
-    }
-
-    std::unique_ptr<Model> Model::createModelFromFile(Device& device, const std::string& filepath)
-    {
-        Builder builder{};
-        builder.loadModel(ENGINE_DIR + filepath);
-
-        return std::make_unique<Model>(device, builder);
-    }
-
-    void Model::bind(VkCommandBuffer commandBuffer)
+    void Model::bind(VkCommandBuffer commandBuffer) const
     {
         VkBuffer buffers[] = {vertexBuffer->getBuffer()};
         VkDeviceSize offsets[] = {0};
@@ -82,7 +68,7 @@ namespace VoidEngine {
         }
     }
 
-    void Model::draw(VkCommandBuffer commandBuffer)
+    void Model::draw(VkCommandBuffer commandBuffer) const
     {
         if (hasIndexBuffer)
         {
@@ -91,6 +77,12 @@ namespace VoidEngine {
         {
             vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
         }
+    }
+
+    void Model::Clear()
+    {
+        vertices.clear();
+        indices.clear();
     }
 
     void Model::createVertexBuffers(const std::vector<Vertex>& vertices)
@@ -122,39 +114,7 @@ namespace VoidEngine {
         device.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), bufferSize);
     }
 
-    void Model::createIndexBuffers(const std::vector<uint32_t>& indices)
-    {
-        indexCount = static_cast<uint32_t>(indices.size());
-        hasIndexBuffer = indexCount > 0;
-
-        if (!hasIndexBuffer) return;
-
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
-        uint32_t indexSize = sizeof(indices[0]);
-
-        Buffer stagingBuffer{
-            device,
-            indexSize,
-            indexCount,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        };
-
-        indexBuffer = std::make_unique<Buffer>(
-            device,
-            indexSize,
-            indexCount,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-
-        stagingBuffer.map();
-        stagingBuffer.writeToBuffer((void *)indices.data());
-
-        device.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
-    }
-
-    void Model::Builder::loadModel(const std::string& filepath)
+    void Model::LoadModelFromFile(const std::string& filepath)
     {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -165,9 +125,6 @@ namespace VoidEngine {
         {
             throw std::runtime_error(warn + err);
         }
-
-        vertices.clear();
-        indices.clear();
 
         std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
@@ -209,14 +166,55 @@ namespace VoidEngine {
                     };
                 }
 
-                if (uniqueVertices.count(vertex) == 0)
+                if (!uniqueVertices.contains(vertex))
                 {
                     uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
                     vertices.push_back(vertex);
+                    //mdl.AddVertex(vertex);
                 }
                 indices.push_back(uniqueVertices[vertex]);
+                //mdl.AddIndex(uniqueVertices[vertex]);
             }
         }
+
+        CreateBuffers();
     }
 
-} // lve
+    void Model::CreateBuffers()
+    {
+        createVertexBuffers(vertices);
+        createIndexBuffers(indices);
+    }
+
+    void Model::createIndexBuffers(const std::vector<uint32_t>& indices)
+    {
+        indexCount = static_cast<uint32_t>(indices.size());
+        hasIndexBuffer = indexCount > 0;
+
+        if (!hasIndexBuffer) return;
+
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
+        uint32_t indexSize = sizeof(indices[0]);
+
+        Buffer stagingBuffer{
+            device,
+            indexSize,
+            indexCount,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        };
+
+        indexBuffer = std::make_unique<Buffer>(
+            device,
+            indexSize,
+            indexCount,
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+
+        stagingBuffer.map();
+        stagingBuffer.writeToBuffer((void *)indices.data());
+
+        device.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
+    }
+} // VoidEngine

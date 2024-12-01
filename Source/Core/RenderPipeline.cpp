@@ -1,6 +1,7 @@
 #include "../Core/RenderPipeline.hpp"
 #include "../Components/Model.hpp"
 #include "../Common.hpp"
+#include "ModelManager.hpp"
 
 #include <fstream>
 #include <ios>
@@ -8,15 +9,21 @@
 #include <stdexcept>
 #include <cassert>
 
+#include "Descriptors.hpp"
+#include "RenderManager.hpp"
+
 namespace VoidEngine
 {
-    RenderPipeline::RenderPipeline(
-            Device& _device,
-            const std::string& vertFilepath,
-            const std::string& fragFilepath,
-            const PipelineConfigInfo& configInfo) : device(_device)
+    struct SimplePushConstantData
     {
-        createGraphicsPipeline(vertFilepath, fragFilepath, configInfo);
+        glm::mat4 modelMatrix{1.f};
+        glm::mat4 normalMatrix{1.f};
+    };
+
+    RenderPipeline::RenderPipeline(Device& device_): configInfo(), device(device_)
+    {
+        SetDefaultPipelineConfigInfo();
+        //createGraphicsPipeline(vertFilepath, fragFilepath, configInfo);
     }
 
     RenderPipeline::~RenderPipeline()
@@ -31,9 +38,8 @@ namespace VoidEngine
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     }
 
-    PipelineConfigInfo RenderPipeline::DefaultPipelineConfigInfo()
+    void RenderPipeline::SetDefaultPipelineConfigInfo()
     {
-        PipelineConfigInfo configInfo;
         configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
@@ -103,20 +109,43 @@ namespace VoidEngine
         configInfo.dynamicStateInfo.pNext = nullptr;
         configInfo.dynamicStateInfo.flags = 0;
 
+        /*
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(SimplePushConstantData);
+
+        std::unique_ptr<DescriptorSetLayout> globalSetLayout = DescriptorSetLayout::Builder(device)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .build();
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout->getDescriptorSetLayout()};
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &configInfo.pipelineLayout) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create pipeline layout.");
+        }
+        */
+
         configInfo.bindingDescriptions = Model::Vertex::getBindingDescriptions();
         configInfo.attributeDescriptions = Model::Vertex::getAttributeDescriptions();
 
         assert(!configInfo.bindingDescriptions.empty() && "bindingDescriptions is empty!");
         assert(!configInfo.attributeDescriptions.empty() && "attributeDescriptions is empty!");
-
-        return configInfo;
     }
 
     std::vector<char> RenderPipeline::readFile(const std::string& filepath)
     {
         //std::string enginePath = ENGINE_DIR + filepath;
         // My cmake copies the spirv files to the correct location
-        std::string enginePath = filepath;
+        if (filepath.empty()) return {};
+        const std::string& enginePath = filepath;
         std::ifstream file(enginePath, std::ios::ate | std::ios::binary);
 
         if (!file.is_open())
@@ -134,10 +163,9 @@ namespace VoidEngine
         return buffer;
     }
 
-    void RenderPipeline::createGraphicsPipeline(
+    void RenderPipeline::CreateGraphicsPipeline(
         const std::string& vertFilepath,
-        const std::string& fragFilepath,
-        const PipelineConfigInfo configInfo)
+        const std::string& fragFilepath)
     {
         assert(configInfo.pipelineLayout != VK_NULL_HANDLE && "Cannot create graphics pipeline:: No pipelineLayout provided in configInfo.");
         assert(configInfo.renderPass != VK_NULL_HANDLE && "Cannot create graphics pipeline:: No renderPass provided in configInfo.");

@@ -1,4 +1,5 @@
 #pragma once
+#include "Camera.hpp"
 
 namespace VoidEngine
 {
@@ -27,6 +28,6 @@ namespace VoidEngine
         VkCommandBuffer commandBuffer;
         Camera &camera;
         VkDescriptorSet globalDescriptorSet;
-        GameObject::Map &gameObjects;
+        std::unordered_map<unsigned int, GameObject> &gameObjects;
     };
 }

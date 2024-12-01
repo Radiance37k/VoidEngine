@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../Common.hpp"
 #include "Window.hpp"
 
 // std lib headers
@@ -22,7 +21,7 @@ namespace VoidEngine
         uint32_t presentFamily;
         bool graphicsFamilyHasValue = false;
         bool presentFamilyHasValue = false;
-        bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
+        bool isComplete() const { return graphicsFamilyHasValue && presentFamilyHasValue; }
     };
 
     class Device
@@ -37,11 +36,65 @@ namespace VoidEngine
         explicit Device(Window &window);
         ~Device();
 
-        // Not copyable or movable
-        //Device(const Device &) = delete;
-        //void operator=(const Device &) = delete;
-        //Device(Device &&) = delete;
-        //Device &operator=(Device &&) = delete;
+        // Move constructor
+        Device(Device&& other)
+            : instance(other.instance),
+            debugMessenger(other.debugMessenger),
+            physicalDevice(other.physicalDevice),
+            window(other.window),
+            commandPool(other.getCommandPool()),
+            device_(other.device_),
+            surface_(other.surface_),
+            graphicsQueue_(other.graphicsQueue_),
+            presentQueue_(other.presentQueue_),
+            properties(other.properties)
+        {
+            other.instance = VK_NULL_HANDLE;
+            other.debugMessenger = VK_NULL_HANDLE;
+            other.physicalDevice = VK_NULL_HANDLE;
+            other.commandPool = VK_NULL_HANDLE;
+            other.device_ = VK_NULL_HANDLE;
+            other.surface_ = VK_NULL_HANDLE;
+            other.graphicsQueue_ = VK_NULL_HANDLE;
+            other.presentQueue_ = VK_NULL_HANDLE;
+        }
+
+        // Move assignment
+        Device& operator=(Device&& other)
+        {
+            if (this == &other) return *this; // Handle self-assignment
+
+            // Clean up current resources
+            cleanup();
+
+            // Move resources
+            instance = other.instance;
+            debugMessenger = other.debugMessenger;
+            physicalDevice = other.physicalDevice;
+            window = other.window;
+            commandPool = other.commandPool;
+            device_ = other.device_;
+            surface_ = other.surface_;
+            graphicsQueue_ = other.graphicsQueue_;
+            presentQueue_ = other.presentQueue_;
+            properties = other.properties;
+
+            // Nullify moved-from object
+            other.instance = VK_NULL_HANDLE;
+            other.debugMessenger = VK_NULL_HANDLE;
+            other.physicalDevice = VK_NULL_HANDLE;
+            other.commandPool = VK_NULL_HANDLE;
+            other.device_ = VK_NULL_HANDLE;
+            other.surface_ = VK_NULL_HANDLE;
+            other.graphicsQueue_ = VK_NULL_HANDLE;
+            other.presentQueue_ = VK_NULL_HANDLE;
+
+            return *this;
+        }
+
+        Device(const Device&) = delete;
+        Device& operator=(const Device&) = delete;
+
 
 
         VkCommandPool getCommandPool() { return commandPool; }
@@ -85,6 +138,8 @@ namespace VoidEngine
         void pickPhysicalDevice();
         void createLogicalDevice();
         void createCommandPool();
+
+        void cleanup();
 
         // helper functions
         bool isDeviceSuitable(VkPhysicalDevice device);

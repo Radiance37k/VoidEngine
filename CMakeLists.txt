@@ -78,6 +78,8 @@ add_library(VoidEngine SHARED
         Source/Managers/UIManager.hpp
         Source/Managers/WindowManager.cpp
         Source/Managers/WindowManager.hpp
+        Source/Components/Transform.cpp
+        Source/Components/Transform.hpp
 )
 
 # Link Vulkan and GLFW to the DLL

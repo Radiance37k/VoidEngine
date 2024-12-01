@@ -1,71 +1,56 @@
 #pragma once
-
+#include "common.hpp"
 #include "Model.hpp"
+#include "Transform.hpp"
 
 #include <gtc/matrix_transform.hpp>
 
 #include <memory>
-#include <unordered_map>
 
-namespace VoidEngine {
+namespace VoidEngine
+{
+    class Game;
 
-    struct TransformComponent
+    class GameObject
     {
-        glm::vec3 translation{};
-        glm::vec3 scale{1.0f, 1.0f, 1.0f};
-        glm::vec3 rotation{};
-
-        // Matrix corrsponds to Translate * Ry * Rx * Rz * Scale
-        // Rotations correspond to Tait-bryan angles of Y(1), X(2), Z(3)
-        // https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix
-        glm::mat4 mat4();
-        glm::mat3 normalMatrix();
-    };
-
-    struct PointLightComponent
-    {
-        float lightIntensity = 1.0f;
-    };
-
-    class GameObject {
     public:
-        using id_t = unsigned int;
-        using Map = std::unordered_map<id_t, GameObject>;
+        VOIDENGINE_API explicit GameObject(unsigned int objId, Game* game);
+        VOIDENGINE_API explicit GameObject(Game* game);
+        virtual ~GameObject() = default;
 
-        static GameObject createGameObject()
+        GameObject(GameObject&&) noexcept;                          // Move constructor func(std::move());
+        GameObject& operator=(GameObject &&) noexcept;              // Move assignment  var = std::move();
+        GameObject(const GameObject& other)                         // Copy constructor var1 = var2;
+            : transform(other.transform), model(other.model), game_(other.game_), device_(other.device_), id(nextId++) {}
+
+        GameObject& operator=(const GameObject& other)              // Copy assignment
         {
-            static id_t currentId = 0;
-            return GameObject{currentId++};
+            if (this == &other) return *this; // Handle self-assignment
+            id = nextId++;
+            transform = other.transform;
+            model = other.model;
+            //device_ = other.device_;
+            return *this;
         }
 
-        static GameObject makePointLight(
-            float intensity = 10.0f,
-            float radius = 0.1f,
-            glm::vec3 color = glm::vec3(1.f));
+        [[nodiscard("id should not be discarded")]] unsigned int getId() const { return id; }
+        template <typename T> T* GetAs() { return dynamic_cast<T*>(this); }
 
-        GameObject() = default;
-        ~GameObject() = default;
+        Transform transform;
 
-        GameObject(const GameObject &) = delete;
-        GameObject& operator=(const GameObject &) = delete;
-        GameObject(GameObject&&) noexcept = default;
-        GameObject& operator=(GameObject &&) noexcept = default;
+        //std::string model;
+        Model* model;
 
-        [[nodiscard("id should not be discarded")]] id_t getId() const { return id; }
+        VOIDENGINE_API virtual void Update();
 
-        void AddChild(GameObject* child);
-
-        TransformComponent transform;
-
-        std::shared_ptr<Model> model;
-        std::unique_ptr<PointLightComponent> pointLight = nullptr;
-        glm::vec3 color;
+    protected:
+        Game& game_;
+        Device& device_;
 
     private:
-        GameObject(id_t objId) : id{objId} {}
-        id_t id;
+        unsigned int id;
+        static std::atomic<unsigned int> nextId;
 
-        GameObject* parent_ = nullptr;
-        std::vector<GameObject*> children_; // id's of children, managed by SceneManager.hpp
+        void init();
     };
 }

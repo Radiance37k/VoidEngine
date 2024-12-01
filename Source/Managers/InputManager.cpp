@@ -1,4 +1,5 @@
 #include "InputManager.hpp"
+#include "GameObject.hpp"
 
 namespace VoidEngine
 {

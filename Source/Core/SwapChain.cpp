@@ -1,33 +1,30 @@
 #include "SwapChain.hpp"
 
 // std
-#include <array>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <limits>
-#include <set>
 #include <stdexcept>
 
 #include "RenderManager.hpp"
 
 namespace VoidEngine {
-    SwapChain::SwapChain(Device &deviceRef, VkExtent2D extent, VkFormat depthFormat, VkRenderPass renderPass)
+    SwapChain::SwapChain(Device &deviceRef, VkExtent2D extent, VkFormat depthFormat)//, VkRenderPass renderPass)
     : device{deviceRef}, windowExtent{extent}
     {
-        init(depthFormat, renderPass);
+        init(depthFormat);//, renderPass);
     }
 
-    SwapChain::SwapChain(Device& deviceRef, VkExtent2D extent, std::shared_ptr<SwapChain> previous, VkFormat depthFormat, VkRenderPass renderPass)
+    SwapChain::SwapChain(Device& deviceRef, VkExtent2D extent, std::shared_ptr<SwapChain> previous, VkFormat depthFormat)//, VkRenderPass renderPass)
     : device{deviceRef}, windowExtent{extent}, oldSwapChain{previous}
     {
-        init(depthFormat, renderPass);
+        init(depthFormat);//, renderPass);
 
         oldSwapChain = nullptr;
     }
 
     SwapChain::~SwapChain()
     {
+        /*
         for (auto imageView : swapChainImageViews)
         {
             vkDestroyImageView(device.device(), imageView, nullptr);
@@ -46,12 +43,14 @@ namespace VoidEngine {
             vkDestroyImage(device.device(), depthImages[i], nullptr);
             vkFreeMemory(device.device(), depthImageMemorys[i], nullptr);
         }
-
+        */
+        /*
         for (auto framebuffer : swapChainFramebuffers)
         {
             vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
         }
-
+        */
+        /*
         // cleanup synchronization objects
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
@@ -59,9 +58,10 @@ namespace VoidEngine {
             vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
             vkDestroyFence(device.device(), inFlightFences[i], nullptr);
         }
+        */
     }
 
-    VkFormat SwapChain::getSwapChainImageFormat()
+    VkFormat SwapChain::GetSwapChainImageFormat()
     {
         return swapChainImageFormat;
     }
@@ -136,12 +136,12 @@ namespace VoidEngine {
         return result;
     }
 
-    void SwapChain::init(VkFormat depthFormat, VkRenderPass renderPass)
+    void SwapChain::init(VkFormat depthFormat)//, VkRenderPass renderPass)
     {
         createSwapChain();
         createImageViews();
         createDepthResources(depthFormat);
-        createFramebuffers(renderPass);
+        //createFramebuffers(renderPass);
         createSyncObjects();
     }
 
@@ -235,6 +235,7 @@ namespace VoidEngine {
 
     void SwapChain::createFramebuffers(VkRenderPass renderPass)
     {
+        /*
         swapChainFramebuffers.resize(imageCount());
         for (size_t i = 0; i < imageCount(); i++)
         {
@@ -259,17 +260,18 @@ namespace VoidEngine {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
+        */
     }
 
     void SwapChain::createDepthResources(VkFormat depthFormat)
     {
         //VkFormat depthFormat = findDepthFormat();
         swapChainDepthFormat = depthFormat;
-        VkExtent2D swapChainExtent = getSwapChainExtent();
+        VkExtent2D swapChainExtent = GetSwapChainExtent();
 
-        depthImages.resize(imageCount());
-        depthImageMemorys.resize(imageCount());
-        depthImageViews.resize(imageCount());
+        depthImages.resize(ImageCount());
+        depthImageMemorys.resize(ImageCount());
+        depthImageViews.resize(ImageCount());
 
         for (int i = 0; i < depthImages.size(); i++)
         {
@@ -318,7 +320,7 @@ namespace VoidEngine {
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);
+        imagesInFlight.resize(ImageCount(), VK_NULL_HANDLE);
 
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

@@ -3,6 +3,8 @@
 #include "SceneManager.hpp"
 #include "VoidEngine.hpp"
 #include "WindowManager.hpp"
+#include "FrameInfo.hpp"
+#include "GameObject.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -19,40 +21,37 @@ namespace VoidEngine
         glm::mat4 normalMatrix{1.f};
     };
 
-    void RenderQueue::renderQueueBegin(VkPipelineLayout layout)
+    void RenderQueue::AddToQueue(const GameObject &gameObject)
     {
-        {
-            // Start command buffer recording
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // Use as appropriate
-
-            if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to begin recording command buffer");
-            }
-
-            // Bind the camera's view/projection matrices if the camera is available
-            if (camera) {
-                // Set up necessary camera parameters here, e.g., view/projection matrices
-            }
-
-            // Bind other resources (like global descriptor set)
-            vkCmdBindDescriptorSets(
-                commandBuffer,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                layout, 0, 1,
-                &globalDescriptorSet, 0, nullptr
-            );
-
-            // Further setup before actual rendering
-        }
+        gameObjectIDs.push_back(gameObject.getId());
     }
 
-    void RenderQueue::renderQueueEnd()
+    void RenderManager::createFrameBuffers(Device& device, SwapChain& swapChain, VkRenderPass pass)
     {
-        // Finish recording the command buffer
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to record command buffer");
+        auto imageCount = swapChain.GetSwapChainImages().size();
+        framebuffers.resize(imageCount);
+        for (size_t i = 0; i < imageCount; i++)
+        {
+            std::array<VkImageView, 2> attachments = {swapChain.GetImageView(i), swapChain.GetDepthImageView(i)};
+
+            VkExtent2D swapChainExtent = swapChain.GetSwapChainExtent();
+            VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = pass;
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = swapChainExtent.width;
+            framebufferInfo.height = swapChainExtent.height;
+            framebufferInfo.layers = 1;
+
+            if (vkCreateFramebuffer(
+                device.device(),
+                &framebufferInfo,
+                nullptr,
+                &framebuffers[i]) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
         }
     }
 
@@ -68,48 +67,58 @@ namespace VoidEngine
          * Descriptor set allocation and update
          * Command buffer recording
          */
-        renderQueue[RenderQueueType::SKYBOX] = RenderQueue();
-        renderQueue[RenderQueueType::OPAQUE] = RenderQueue();
-        renderQueue[RenderQueueType::LIGHT] = RenderQueue();
-        renderQueue[RenderQueueType::SHADOW] = RenderQueue();
-        renderQueue[RenderQueueType::TRANSPARENT] = RenderQueue();
-        renderQueue[RenderQueueType::REFLECTION] = RenderQueue();
-        renderQueue[RenderQueueType::UI] = RenderQueue();
-        renderQueue[RenderQueueType::POSTPROCESSING] = RenderQueue();
-        renderQueue[RenderQueueType::DEBUG] = RenderQueue();
 
-        createRenderPass();
+        renderQueue[RenderQueueType::OPAQUE] = std::make_unique<RenderQueue>();
+        renderQueue[RenderQueueType::OPAQUE]->pipeline = std::make_unique<RenderPipeline>(device);
 
+        renderQueue[RenderQueueType::LIGHT] = std::make_unique<RenderQueue>();
+        renderQueue[RenderQueueType::LIGHT]->pipeline = std::make_unique<RenderPipeline>(device);
+
+        createRenderPass(renderQueue[RenderQueueType::OPAQUE]->pipeline->configInfo.renderPass);
+        createRenderPass(renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass);
+
+        createDescriptorSetPool();
         std::unique_ptr<DescriptorSetLayout> globalSetLayout = DescriptorSetLayout::Builder(device)
                 .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
                 .build();
 
-        createPipelineLayout(globalSetLayout->getDescriptorSetLayout());
-        createPipeline(renderPass);
-        // Todo: Create framebuffer
-        createDescriptorSetPool();
-        allocateDescriptorSet(globalSetLayout->getDescriptorSetLayout(), renderQueue[RenderQueueType::OPAQUE].globalDescriptorSet);
+        createPipelineLayout(*renderQueue[RenderQueueType::OPAQUE], globalSetLayout->getDescriptorSetLayout());
+        createPipelineLayout(*renderQueue[RenderQueueType::LIGHT], globalSetLayout->getDescriptorSetLayout());
 
-        allocateCommandBuffers(renderQueue[RenderQueueType::SKYBOX].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::OPAQUE].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::LIGHT].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::SHADOW].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::TRANSPARENT].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::REFLECTION].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::UI].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::POSTPROCESSING].commandBuffer);
-        allocateCommandBuffers(renderQueue[RenderQueueType::DEBUG].commandBuffer);
+        renderQueue[RenderQueueType::OPAQUE]->pipeline->CreateGraphicsPipeline("Shaders/Simple_shader.vert.spv", "Shaders/Simple_shader.frag.spv");
+        renderQueue[RenderQueueType::LIGHT]->pipeline->CreateGraphicsPipeline("Shaders/Point_Light.vert.spv", "Shaders/Point_Light.frag.spv");
 
-        swapChain_ = std::make_unique<SwapChain>(device_, resolution, FindDepthFormat(device_), renderPass);
+        swapChain_ = std::make_unique<SwapChain>(device_, resolution, FindDepthFormat(device_));
+
+        createFrameBuffers(device, *swapChain_, renderQueue[RenderQueueType::OPAQUE]->pipeline->configInfo.renderPass);
+        createFrameBuffers(device, *swapChain_, renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass);
+
+        allocateDescriptorSet(globalSetLayout->getDescriptorSetLayout(), renderQueue[RenderQueueType::OPAQUE]->descriptorSet);
+        allocateDescriptorSet(globalSetLayout->getDescriptorSetLayout(), renderQueue[RenderQueueType::LIGHT]->descriptorSet);
+
+        allocateCommandBuffers(commandBuffer);
     }
 
     RenderManager::~RenderManager()
     {
-        vkDestroyRenderPass(device.device(), renderPass, nullptr);
-        vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
+        //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::SKYBOX]->renderPass, nullptr);
+        //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::OPAQUE]->renderPass, nullptr);
+        //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::LIGHT]->renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::OPAQUE]->pipeline->configInfo.renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass, nullptr);
+        /*
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::SHADOW]->renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::TRANSPARENT]->renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::REFLECTION]->renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::UI]->renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::POSTPROCESSING]->renderPass, nullptr);
+        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::DEBUG]->renderPass, nullptr);
+        */
+
+        //vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
 
-    void RenderManager::createPipelineLayout(VkDescriptorSetLayout layout)
+    void RenderManager::createPipelineLayout(RenderQueue& renderQueue, VkDescriptorSetLayout layout)
     {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -125,26 +134,10 @@ namespace VoidEngine
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &renderQueue.pipeline->configInfo.pipelineLayout) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create pipeline layout.");
         }
-    }
-
-    void RenderManager::createPipeline(VkRenderPass renderPass)
-    {
-        assert(pipelineLayout != nullptr && "Can't create pipeline before pipeline layout");
-
-        PipelineConfigInfo pipelineConfig{};
-        pipelineConfig = RenderPipeline::DefaultPipelineConfigInfo();
-        pipelineConfig.renderPass = renderPass;
-        pipelineConfig.pipelineLayout = pipelineLayout;
-
-        pipeline = std::make_unique<RenderPipeline>(
-            device,
-            "Shaders/Simple_shader.vert.spv",
-            "Shaders/Simple_shader.frag.spv",
-            pipelineConfig);
     }
 
     void RenderManager::createSwapChain(VkFormat depthFormat, VkRenderPass renderPass, VkExtent2D extent)
@@ -157,21 +150,17 @@ namespace VoidEngine
 
         if (swapChain_ == nullptr)
         {
-            swapChain_ = std::make_unique<SwapChain>(device, extent, depthFormat, renderPass);
+            swapChain_ = std::make_unique<SwapChain>(device, extent, depthFormat);
         } else
         {
             std::shared_ptr<SwapChain> oldSwapChain = std::move(swapChain_);
-            swapChain_ = std::make_unique<SwapChain>(device, extent, oldSwapChain, depthFormat, renderPass);
+            swapChain_ = std::make_unique<SwapChain>(device, extent, oldSwapChain, depthFormat);
 
-            if (!oldSwapChain->compareSwapFormats(*swapChain_.get()))
+            if (!oldSwapChain->compareSwapFormats(*swapChain_))
             {
                 throw std::runtime_error("Swap chain image(or depth) format has changed!");
             }
         }
-    }
-
-    void RenderManager::createDescriptorSetLayout()
-    {
     }
 
     void RenderManager::createDescriptorSetPool()
@@ -179,13 +168,13 @@ namespace VoidEngine
         // Set up pool sizes for types of descriptors (e.g., uniform buffers)
         VkDescriptorPoolSize poolSize{};
         poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = 1;
+        poolSize.descriptorCount = static_cast<int>(RenderQueueType::COUNT);
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = 1;
+        poolInfo.maxSets = static_cast<int>(RenderQueueType::COUNT);
 
         vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &descriptorPool);
     }
@@ -201,17 +190,10 @@ namespace VoidEngine
         vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptorSet);
     }
 
-    void RenderManager::UpdateDescriptorSet(VkDescriptorSet destSet, VkBuffer uboBuffer)
+    void RenderManager::UpdateDescriptorSet(VkDescriptorSet destSet, const std::vector<std::unique_ptr<Buffer>>& uboBuffers, uint32_t currentFrame) const
     {
-        /*
-        void* data;
-        vkMapMemory(device.device(), uboMemory, 0, sizeof(GlobalUbo), 0, &data);
-        memcpy(data, &game_., sizeof(GlobalUbo));
-        vkUnmapMemory(device.device(), uboMemory);
-        */
-
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uboBuffer;  // Your uniform buffer handle
+        bufferInfo.buffer = uboBuffers[currentFrame]->getBuffer();  // Your uniform buffer handle
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(GlobalUbo);
 
@@ -227,59 +209,57 @@ namespace VoidEngine
         vkUpdateDescriptorSets(device.device(), 1, &descriptorWrite, 0, nullptr);
     }
 
-    void RenderManager::RenderObjectsInQueue(const RenderQueueType& queueType, VkBuffer ubo)
+    void RenderManager::RenderObjectsInQueue(const RenderQueue& queue, VkCommandBuffer cmdBuffer)
     {
-        if (pipeline == nullptr) return;
+        if (queue.pipeline == nullptr) return;
 
-        pipeline->bind(renderQueue[queueType].commandBuffer);
+        //queue.pipeline->bind(commandBuffer);
 
         vkCmdBindDescriptorSets(
-            renderQueue[queueType].commandBuffer,
+            cmdBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout,
+            queue.pipeline->configInfo.pipelineLayout,
             0,
             1,
-            &renderQueue[queueType].globalDescriptorSet,
+            &queue.descriptorSet,
             0,
             nullptr);
 
-        auto q = renderQueue.find(queueType);
-        //for (auto& kv : renderQueue[queueType])
-        if (q != renderQueue.end())
+        for (auto& id : queue.gameObjectIDs)
         {
-            //for (auto& kv : q->second)
-            for (auto& id : q->second.gameObjectIDs)
+            auto obj = game_.sceneManager->FindGameObject(id);
+            if (obj->model == nullptr) continue;
+            SimplePushConstantData push{};
+            push.modelMatrix = obj->transform.mat4();
+            push.normalMatrix = obj->transform.normalMatrix();
+
+            vkCmdPushConstants(
+                cmdBuffer,
+                queue.pipeline->configInfo.pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                sizeof(SimplePushConstantData),
+                &push);
+
+            // LIGHT does not use any , that causes an exception, make it use 1 vertex at 0, 0, 0 for starters
+            VkBuffer buffers[] = {obj->model->vertexBuffer->getBuffer()};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(cmdBuffer, 0, 1, buffers, offsets);
+
+            if (obj->model->hasIndexBuffer)
             {
-                auto obj = game_.sceneManager->FindGameObject(id);
-                if (obj->model == nullptr) continue;
-                SimplePushConstantData push{};
-                push.modelMatrix = obj->transform.mat4();
-                push.normalMatrix = obj->transform.normalMatrix();
-
-                vkCmdPushConstants(
-                    renderQueue[queueType].commandBuffer,
-                    pipelineLayout,
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                    0,
-                    sizeof(SimplePushConstantData),
-                    &push);
-
-                obj->model->bind(renderQueue[queueType].commandBuffer);
-                obj->model->draw(renderQueue[queueType].commandBuffer);
+                vkCmdBindIndexBuffer(cmdBuffer, obj->model->indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+                vkCmdDrawIndexed(cmdBuffer, obj->model->indexCount, 1, 0, 0, 0);
+            } else
+            {
+                vkCmdDraw(cmdBuffer, obj->model->vertexCount, 1, 0, 0);
             }
         }
-
-        //renderQueue[queueType].renderQueueEnd();
     }
 
     void RenderManager::AddToRenderQueue(const GameObject& gameObject, RenderQueueType queueType)
     {
-        renderQueue[queueType].AddToQueue(gameObject);
-    }
-
-    VkRenderPass RenderManager::GetRenderPass() const
-    {
-        return renderPass;
+        renderQueue[queueType]->AddToQueue(gameObject);
     }
 
     VkFormat RenderManager::FindDepthFormat(Device& device)
@@ -303,12 +283,7 @@ namespace VoidEngine
         }
     }
 
-    void RenderManager::createRenderPass()
-    {
-        createRenderPass(VK_FORMAT_B8G8R8A8_UNORM);
-    }
-
-    void RenderManager::createRenderPass(VkFormat imageFormat)
+    void RenderManager::createRenderPass(VkRenderPass& renderPass, VkFormat imageFormat)
     {
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = FindDepthFormat(device);
@@ -354,6 +329,8 @@ namespace VoidEngine
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask =
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
         VkRenderPassCreateInfo renderPassInfo = {};

@@ -5,6 +5,8 @@
 
 namespace VoidEngine
 {
+    struct RenderQueue;
+
     struct PipelineConfigInfo {
         //PipelineConfigInfo(const PipelineConfigInfo&) = delete;
         //PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
@@ -33,32 +35,28 @@ namespace VoidEngine
     class RenderPipeline
     {
     public:
-        RenderPipeline(
-            Device& device,
-            const std::string& vertFilepath,
-            const std::string& fragFilepath,
-            const PipelineConfigInfo& configInfo);
+        PipelineConfigInfo configInfo;
+
+        RenderPipeline(Device& device_);
         ~RenderPipeline();
 
         RenderPipeline(const RenderPipeline&) = delete;
         RenderPipeline &operator=(const RenderPipeline&) = delete;
 
         void bind(VkCommandBuffer commandBuffer);
-        static PipelineConfigInfo DefaultPipelineConfigInfo();
+        void CreateGraphicsPipeline(
+            const std::string& vertFilepath,
+            const std::string& fragFilepath);
 
     private:
         static std::vector<char> readFile(const std::string& filepath);
 
-        void createGraphicsPipeline(
-            const std::string& vertFilepath,
-            const std::string& fragFilepath,
-            PipelineConfigInfo configInfo);
-
         void createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
+        void SetDefaultPipelineConfigInfo();
 
         Device& device;
-        VkPipeline graphicsPipeline;
-        VkShaderModule vertShaderModule;
-        VkShaderModule fragShaderModule;
+        VkPipeline graphicsPipeline{};
+        VkShaderModule vertShaderModule{};
+        VkShaderModule fragShaderModule{};
     };
 }

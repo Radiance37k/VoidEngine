@@ -51,8 +51,8 @@ namespace VoidEngine
     Buffer::~Buffer()
     {
         unmap();
-        vkDestroyBuffer(device.device(), buffer, nullptr);
-        vkFreeMemory(device.device(), memory, nullptr);
+        //vkDestroyBuffer(device.device(), buffer, nullptr);
+        //vkFreeMemory(device.device(), memory, nullptr);
     }
 
     /**

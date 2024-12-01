@@ -1,5 +1,4 @@
 #pragma once
-#include "GameObject.hpp"
 #include "RenderManager.hpp"
 
 namespace VoidEngine
@@ -7,12 +6,14 @@ namespace VoidEngine
     class SceneManager
     {
     public:
-        VOIDENGINE_API SceneManager();
-        VOIDENGINE_API ~SceneManager();
+        VOIDENGINE_API SceneManager() = default;
+        VOIDENGINE_API ~SceneManager() = default;
 
-        VOIDENGINE_API void AddGameObject(GameObject&& gameObject);
-        VOIDENGINE_API void AddGameObject(unsigned int id, GameObject&& gameObject);
+        VOIDENGINE_API void AddGameObject(std::unique_ptr<GameObject> gameObject);
+
         VOIDENGINE_API GameObject* FindGameObject(unsigned int id);
+
+        //std::unordered_map<unsigned int, std::unique_ptr<GameObject>> GetGameObjects() { return gameObjects_; }
 
         // Singleton access
         static SceneManager& getInstance()
@@ -22,7 +23,6 @@ namespace VoidEngine
         }
 
     private:
-        //GameObject root_; // The root gameobject
-        std::unordered_map<unsigned int, GameObject> gameObjects_{};
+        std::unordered_map<unsigned int, std::unique_ptr<GameObject>> gameObjects_{};
     };
 } // VoidEngine

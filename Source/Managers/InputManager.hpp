@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../Components/GameObject.hpp"
-#include "../Core/Window.hpp"
+#include "Window.hpp"
 
 namespace VoidEngine
 {
+    class GameObject;
+
     class InputManager
     {
     public:

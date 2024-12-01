@@ -1,12 +1,9 @@
 #include "PointLight.hpp"
-
-#include <array>
-#include <stdexcept>
+#include "ModelManager.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm.hpp>
-#include <gtc/constants.hpp>
 
 namespace VoidEngine
 {
@@ -17,17 +14,32 @@ namespace VoidEngine
         float radius;
     };
 
-    PointLight::PointLight(Device& _device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device(_device)
+    void PointLight::SetPointLight(float i, float r, glm::vec3 c)
     {
-        createPipelineLayout(globalSetLayout);
-        createPipeline(renderPass);
+        color = c;
+        transform.scale.x = r;
+        radius = r;
+        intensity = i;
+    }
+
+    PointLight::PointLight(Game* game) : GameObject(game)
+    {
+        //model->SetVertices(tmpPos);
+    }
+
+    /*
+    PointLight::PointLight()//Device& _device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : device(_device)
+    {
+        //createPipelineLayout(globalSetLayout);
+        //createPipeline(renderPass);
     }
 
     PointLight::~PointLight()
     {
-        vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
+        //vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
     }
-
+    */
+    /*
     void PointLight::createPipelineLayout(VkDescriptorSetLayout globalSetLayout)
     {
         VkPushConstantRange pushConstantRange{};
@@ -48,7 +60,8 @@ namespace VoidEngine
             throw std::runtime_error("Failed to create pipeline layout.");
         }
     }
-
+    */
+    /*
     void PointLight::createPipeline(VkRenderPass renderPass)
     {
         assert(pipelineLayout != nullptr && "Can't create point light before pipeline layout");
@@ -66,25 +79,35 @@ namespace VoidEngine
             "Shaders/point_light.frag.spv",
             pipelineConfig);
     }
+    */
 
-    void PointLight::update(FrameInfo& frameInfo, GlobalUbo& ubo)
+    void PointLight::Update()
+    {
+        GameObject::Update();
+    }
+
+    void PointLight::UpdateLight(GlobalUbo& ubo)
     {
         auto rotateLight = glm::rotate(
             glm::mat4(1.f),
-            frameInfo.frameTime,
+            0.0f,
+            //frameInfo.frameTime,
             {0.f, -1.f, 0.f});
+
+        transform.translation = glm::vec3(rotateLight * glm::vec4(transform.translation, 1.f));
+
         int lightIndex = 0;
-        for (auto& kv : frameInfo.gameObjects)
+        //for (auto& kv : frameInfo.gameObjects)
         {
-            auto& obj = kv.second;
-            if (obj.pointLight == nullptr) continue;
+            //auto& obj = kv.second;
+            //if (obj->pointLight == nullptr) continue;
 
             assert(lightIndex < MAX_LIGHTS && "Point lights exceed maximum specified");
 
-            obj.transform.translation = glm::vec3(rotateLight * glm::vec4(obj.transform.translation, 1.f));
+            transform.translation = glm::vec3(rotateLight * glm::vec4(transform.translation, 1.f));
 
-            ubo.pointLights[lightIndex].position = glm::vec4(obj.transform.translation, 1.f);
-            ubo.pointLights[lightIndex].color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
+            ubo.pointLights[lightIndex].position = glm::vec4(transform.translation, 1.f);
+            ubo.pointLights[lightIndex].color = glm::vec4(color, intensity);
             lightIndex++;
         }
         ubo.numLights = lightIndex;
