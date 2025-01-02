@@ -4,12 +4,17 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm.hpp>
 
-#include "Common.hpp"
+#include "GameObject.hpp"
 
-namespace VoidEngine {
-
-    class Camera {
+namespace VoidEngine
+{
+    class Camera : public GameObject
+    {
     public:
+        VOIDENGINE_API Camera(Game *game, const glm::mat4 &projectionMatrix, const glm::mat4 &viewMatrix,
+            const glm::mat4 &inverseViewMatrix);
+        VOIDENGINE_API explicit Camera(Game *game);
+
         void setOrthographicProjection(
             float left, float right, float top, float bottom, float near, float far);
         void setPerspectiveProjection(float fovy, float aspect, float near, float far);

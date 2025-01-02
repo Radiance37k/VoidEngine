@@ -7,6 +7,7 @@
 namespace VoidEngine {
 
 class CameraManager {
+    // TODO: Camera related stuff here
 
 };
 

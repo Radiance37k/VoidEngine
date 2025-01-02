@@ -1,6 +1,9 @@
 #include "GameObject.hpp"
 #include "VoidEngine.hpp"
 
+//#define TINYOBJLOADER_IMPLEMENTATION
+//#include <External/tinyobjloader/tinyobjloader.hpp>
+
 namespace VoidEngine
 {
     std::atomic<unsigned int> GameObject::nextId{0};
@@ -30,7 +33,7 @@ namespace VoidEngine
 
         //device_ = other.device_; // Reassign device reference
         id = other.id;
-        //model = std::move(other.model); // Transfer ownership of model
+        model = std::move(other.model); // Transfer ownership of model
         transform = other.transform; // Move transform
 
         // Invalidate the moved object
@@ -47,7 +50,7 @@ namespace VoidEngine
 
     void GameObject::init()
     {
-        //model = new Model(device_);
+        model = new Model(device_);
         //model = std::make_unique<Model>(device_);
     }
 }

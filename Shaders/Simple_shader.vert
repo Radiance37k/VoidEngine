@@ -15,7 +15,7 @@ struct PointLight
     vec4 color;
 };
 
-layout(set = 0, binding = 0) uniform GlobalUbo
+layout(set = 0, binding = 0, std140) uniform GlobalUbo
 {
     mat4 projection;
     mat4 view;
@@ -34,8 +34,12 @@ layout(push_constant) uniform Push
 void main()
 {
     vec4 positionWorld = push.modelMatrix * vec4(position, 1.0);
-    gl_Position = ubo.projection * ubo.view * positionWorld;
+    //gl_Position = ubo.projection * ubo.view * positionWorld;
     fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
     fragPosWorld = positionWorld.xyz;
     fragColor = color;
+
+    //gl_Position = positionWorld;
+    //gl_Position = ubo.view * positionWorld;
+    gl_Position = ubo.projection * positionWorld;
 }

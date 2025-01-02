@@ -49,6 +49,8 @@ namespace VoidEngine
 
         std::unique_ptr<GlobalUbo> ubo{};
 
+        Camera* mainCamera;
+
     private:
         Window* window = new Window(WIDTH, HEIGHT, "Hello Vulkan");
         Device* device = new Device(*window);

@@ -26,8 +26,8 @@ namespace VoidEngine
 
         VOIDENGINE_API void Update() override;
 
-        void UpdateLight(GlobalUbo &ubo);
-        void render(FrameInfo& frameInfo);
+        void UpdateLight(GlobalUbo &ubo, int lightIndex);
+        //void render(FrameInfo& frameInfo);
 
     private:
         float intensity = 1.0f;

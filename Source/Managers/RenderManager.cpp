@@ -55,7 +55,7 @@ namespace VoidEngine
         }
     }
 
-    RenderManager::RenderManager(Device& device_, Game& gameInstance, VkExtent2D resolution) : device(device_), game_(gameInstance)
+    RenderManager::RenderManager(Device& device_, Game& gameInstance, VkExtent2D resolution) : game_(gameInstance), device(device_)
     {
         /* Creation order:
          *
@@ -78,14 +78,26 @@ namespace VoidEngine
         createRenderPass(renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass);
 
         createDescriptorSetPool();
-        std::unique_ptr<DescriptorSetLayout> globalSetLayout = DescriptorSetLayout::Builder(device)
+        /*
+        DescriptorSetLayout::Builder(device)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .build()
+        */
+        std::unique_ptr<DescriptorSetLayout> setLayoutOpaque = DescriptorSetLayout::Builder(device)
+                //.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                .build();
+        std::unique_ptr<DescriptorSetLayout> setLayoutLight = DescriptorSetLayout::Builder(device)
                 .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
                 .build();
 
-        createPipelineLayout(*renderQueue[RenderQueueType::OPAQUE], globalSetLayout->getDescriptorSetLayout());
-        createPipelineLayout(*renderQueue[RenderQueueType::LIGHT], globalSetLayout->getDescriptorSetLayout());
+        //createPipelineLayout(*renderQueue[RenderQueueType::OPAQUE], globalSetLayout->getDescriptorSetLayout());
+        //createPipelineLayout(*renderQueue[RenderQueueType::LIGHT], globalSetLayout->getDescriptorSetLayout());
+        createPipelineLayout(*renderQueue[RenderQueueType::OPAQUE], setLayoutOpaque->getDescriptorSetLayout());
+        createPipelineLayout(*renderQueue[RenderQueueType::OPAQUE], setLayoutLight->getDescriptorSetLayout());
 
         renderQueue[RenderQueueType::OPAQUE]->pipeline->CreateGraphicsPipeline("Shaders/Simple_shader.vert.spv", "Shaders/Simple_shader.frag.spv");
+        //renderQueue[RenderQueueType::OPAQUE]->pipeline->CreateGraphicsPipeline("Shaders/Simple_Flat.vert.spv", "Shaders/Simple_Flat.frag.spv");
         renderQueue[RenderQueueType::LIGHT]->pipeline->CreateGraphicsPipeline("Shaders/Point_Light.vert.spv", "Shaders/Point_Light.frag.spv");
 
         swapChain_ = std::make_unique<SwapChain>(device_, resolution, FindDepthFormat(device_));
@@ -93,8 +105,8 @@ namespace VoidEngine
         createFrameBuffers(device, *swapChain_, renderQueue[RenderQueueType::OPAQUE]->pipeline->configInfo.renderPass);
         createFrameBuffers(device, *swapChain_, renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass);
 
-        allocateDescriptorSet(globalSetLayout->getDescriptorSetLayout(), renderQueue[RenderQueueType::OPAQUE]->descriptorSet);
-        allocateDescriptorSet(globalSetLayout->getDescriptorSetLayout(), renderQueue[RenderQueueType::LIGHT]->descriptorSet);
+        allocateDescriptorSet(setLayoutOpaque->getDescriptorSetLayout(), renderQueue[RenderQueueType::OPAQUE]->descriptorSet);
+        allocateDescriptorSet(setLayoutLight->getDescriptorSetLayout(), renderQueue[RenderQueueType::LIGHT]->descriptorSet);
 
         allocateCommandBuffers(commandBuffer);
     }
@@ -104,8 +116,8 @@ namespace VoidEngine
         //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::SKYBOX]->renderPass, nullptr);
         //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::OPAQUE]->renderPass, nullptr);
         //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::LIGHT]->renderPass, nullptr);
-        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::OPAQUE]->pipeline->configInfo.renderPass, nullptr);
-        vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass, nullptr);
+        //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::OPAQUE]->pipeline->configInfo.renderPass, nullptr);
+        //vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::LIGHT]->pipeline->configInfo.renderPass, nullptr);
         /*
         vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::SHADOW]->renderPass, nullptr);
         vkDestroyRenderPass(device.device(), renderQueue[RenderQueueType::TRANSPARENT]->renderPass, nullptr);
@@ -126,18 +138,6 @@ namespace VoidEngine
         pushConstantRange.size = sizeof(SimplePushConstantData);
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{layout};
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
-        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-
-        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &renderQueue.pipeline->configInfo.pipelineLayout) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create pipeline layout.");
-        }
     }
 
     void RenderManager::createSwapChain(VkFormat depthFormat, VkRenderPass renderPass, VkExtent2D extent)
@@ -241,7 +241,6 @@ namespace VoidEngine
                 sizeof(SimplePushConstantData),
                 &push);
 
-            // LIGHT does not use any , that causes an exception, make it use 1 vertex at 0, 0, 0 for starters
             VkBuffer buffers[] = {obj->model->vertexBuffer->getBuffer()};
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(cmdBuffer, 0, 1, buffers, offsets);

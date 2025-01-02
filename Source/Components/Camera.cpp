@@ -5,6 +5,22 @@
 #include <limits>
 
 namespace VoidEngine {
+    Camera::Camera(Game *game, const glm::mat4 &projectionMatrix, const glm::mat4 &viewMatrix,
+    const glm::mat4 &inverseViewMatrix) : GameObject(game),
+          projectionMatrix(projectionMatrix),
+          viewMatrix(viewMatrix),
+          inverseViewMatrix(inverseViewMatrix)
+    {
+    }
+
+    Camera::Camera(Game *game) : GameObject(game)
+    {
+        auto identity = glm::mat4(1.0f);
+        projectionMatrix = identity;
+        viewMatrix = identity;
+        inverseViewMatrix = identity;
+    }
+
     void Camera::setOrthographicProjection(
     float left, float right, float top, float bottom, float near, float far) {
         projectionMatrix = glm::mat4{1.0f};

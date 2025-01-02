@@ -86,21 +86,13 @@ namespace VoidEngine
         GameObject::Update();
     }
 
-    void PointLight::UpdateLight(GlobalUbo& ubo)
+    void PointLight::UpdateLight(GlobalUbo& ubo, int lightIndex)
     {
         auto rotateLight = glm::rotate(
             glm::mat4(1.f),
             0.0f,
             //frameInfo.frameTime,
             {0.f, -1.f, 0.f});
-
-        transform.translation = glm::vec3(rotateLight * glm::vec4(transform.translation, 1.f));
-
-        int lightIndex = 0;
-        //for (auto& kv : frameInfo.gameObjects)
-        {
-            //auto& obj = kv.second;
-            //if (obj->pointLight == nullptr) continue;
 
             assert(lightIndex < MAX_LIGHTS && "Point lights exceed maximum specified");
 
@@ -109,13 +101,13 @@ namespace VoidEngine
             ubo.pointLights[lightIndex].position = glm::vec4(transform.translation, 1.f);
             ubo.pointLights[lightIndex].color = glm::vec4(color, intensity);
             lightIndex++;
-        }
-        ubo.numLights = lightIndex;
+
+        //ubo.numLights = lightIndex;
     }
 
+    /*
     void PointLight::render(FrameInfo& frameInfo)
     {
-        /*
         pipeline->bind(frameInfo.commandBuffer);
 
         vkCmdBindDescriptorSets(
@@ -148,6 +140,6 @@ namespace VoidEngine
 
             vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
         }
-        */
     }
+    */
 }

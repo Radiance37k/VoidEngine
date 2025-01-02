@@ -8,6 +8,7 @@
 #include "SwapChain.hpp"
 #include "../Core/Device.hpp"
 #include "../Core/RenderPipeline.hpp"
+#include "Common.hpp"
 
 namespace VoidEngine
 {

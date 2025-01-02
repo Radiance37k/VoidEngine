@@ -109,14 +109,13 @@ namespace VoidEngine
         configInfo.dynamicStateInfo.pNext = nullptr;
         configInfo.dynamicStateInfo.flags = 0;
 
-        /*
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(SimplePushConstantData);
 
         std::unique_ptr<DescriptorSetLayout> globalSetLayout = DescriptorSetLayout::Builder(device)
-                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, 1)
                 .build();
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout->getDescriptorSetLayout()};
 
@@ -131,7 +130,6 @@ namespace VoidEngine
         {
             throw std::runtime_error("Failed to create pipeline layout.");
         }
-        */
 
         configInfo.bindingDescriptions = Model::Vertex::getBindingDescriptions();
         configInfo.attributeDescriptions = Model::Vertex::getAttributeDescriptions();
@@ -226,8 +224,10 @@ namespace VoidEngine
         pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
 
         pipelineInfo.layout = configInfo.pipelineLayout;
+        // TODO: DEBUG - Make sure the queue renderpass is set here
         pipelineInfo.renderPass = configInfo.renderPass;
-        pipelineInfo.subpass = configInfo.subpass;
+        //pipelineInfo.subpass = configInfo.subpass;
+        pipelineInfo.subpass = 0;
 
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;

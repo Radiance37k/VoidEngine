@@ -55,8 +55,12 @@ namespace VoidEngine
         void SetDefaultPipelineConfigInfo();
 
         Device& device;
+        VkFramebuffer framebuffer{};
         VkPipeline graphicsPipeline{};
         VkShaderModule vertShaderModule{};
         VkShaderModule fragShaderModule{};
+
+        // TODO: Command buffer
+        // TODO: Descriptor set, for queue specific ubo, textures, etc.
     };
 }

@@ -18,6 +18,10 @@ set(GLFW_LIBRARY "${GLFW_ROOT}/lib-vc2022/glfw3.lib")
 # Manually specify the path to GLM (it's header-only)
 set(GLM_INCLUDE_DIR "Source/External/glm")
 
+# Set DEBUG definitions
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+
 include_directories(
         Source
         Source/Core
@@ -43,8 +47,6 @@ add_library(VoidEngine SHARED
         Source/Components/Model.hpp
         Source/Components/PointLight.cpp
         Source/Components/PointLight.hpp
-        Source/Components/Vertex.cpp
-        Source/Components/Vertex.hpp
 
         Source/Core/Buffer.hpp
         Source/Core/Buffer.cpp
@@ -90,6 +92,7 @@ target_link_libraries(VoidEngine PRIVATE
 
 # Define VOIDENGINE_EXPORTS when compiling the shared library (DLL)
 target_compile_definitions(VoidEngine PRIVATE VOIDENGINE_EXPORTS)
+target_compile_definitions(VoidEngine PRIVATE _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING)
 
 # Create the executable tests (game)
 add_executable(Test1 Testbeds/Test1.cpp)

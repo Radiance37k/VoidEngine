@@ -27,7 +27,7 @@ namespace VoidEngine
     class Device
     {
     public:
-    #ifdef NDEBUG
+    #ifdef DEBUG
         const bool enableValidationLayers = false;
     #else
         const bool enableValidationLayers = true;

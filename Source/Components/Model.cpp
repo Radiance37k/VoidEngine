@@ -8,21 +8,18 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "External/glm/gtx/hash.hpp"
 
-#include <cassert>
+#include "External/glm/gtx/string_cast.hpp"
 
-namespace std
+template<>
+struct std::hash<VoidEngine::Model::Vertex>
 {
-    template<>
-    struct hash<VoidEngine::Model::Vertex>
+    size_t operator()(VoidEngine::Model::Vertex const& vertex) const noexcept
     {
-        size_t operator()(VoidEngine::Model::Vertex const& vertex) const
-        {
-            size_t seed = 0;
-            VoidEngine::hashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv);
-            return seed;
-        }
-    };
-}
+        size_t seed = 0;
+        VoidEngine::hashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv);
+        return seed;
+    }
+};
 
 namespace VoidEngine
 {
@@ -50,12 +47,13 @@ namespace VoidEngine
 
     Model::Model(Device& _device) : vertexCount(0), indexCount(0), device(_device)
     {
-        //createVertexBuffers(builder.vertices);
-        //createIndexBuffers(builder.indices);
+        //createVertexBuffers(vertices);
+        //createIndexBuffers(indices);
     }
 
     Model::~Model() = default;
 
+    /*
     void Model::bind(VkCommandBuffer commandBuffer) const
     {
         VkBuffer buffers[] = {vertexBuffer->getBuffer()};
@@ -67,6 +65,7 @@ namespace VoidEngine
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
         }
     }
+    */
 
     void Model::draw(VkCommandBuffer commandBuffer) const
     {
@@ -77,12 +76,6 @@ namespace VoidEngine
         {
             vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
         }
-    }
-
-    void Model::Clear()
-    {
-        vertices.clear();
-        indices.clear();
     }
 
     void Model::createVertexBuffers(const std::vector<Vertex>& vertices)
@@ -102,6 +95,7 @@ namespace VoidEngine
 
         stagingBuffer.map();
         stagingBuffer.writeToBuffer((void *)vertices.data());
+        stagingBuffer.unmap();
 
         vertexBuffer = std::make_unique<Buffer>(
             device,
@@ -113,6 +107,9 @@ namespace VoidEngine
 
         device.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), bufferSize);
     }
+
+    //glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1.33333f, 0.1f, 100.0f);
+    //std::cerr << "Projection Matrix :\n" << glm::to_string(projection) << std::endl;
 
     void Model::LoadModelFromFile(const std::string& filepath)
     {
@@ -166,18 +163,24 @@ namespace VoidEngine
                     };
                 }
 
+                static_assert(std::is_trivially_copyable_v<Vertex>, "Vertex must be trivially copyable!");
+
                 if (!uniqueVertices.contains(vertex))
                 {
                     uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
                     vertices.push_back(vertex);
-                    //mdl.AddVertex(vertex);
                 }
                 indices.push_back(uniqueVertices[vertex]);
-                //mdl.AddIndex(uniqueVertices[vertex]);
             }
         }
 
         CreateBuffers();
+    }
+
+    void Model::AddVertex(const Vertex &v)
+    {
+        vertices.push_back(v);
+        indices.push_back(vertices.size());
     }
 
     void Model::CreateBuffers()
@@ -214,6 +217,7 @@ namespace VoidEngine
 
         stagingBuffer.map();
         stagingBuffer.writeToBuffer((void *)indices.data());
+        stagingBuffer.unmap();
 
         device.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
     }

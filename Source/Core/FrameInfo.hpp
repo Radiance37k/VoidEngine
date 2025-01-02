@@ -13,12 +13,12 @@ namespace VoidEngine
 
     struct GlobalUbo
     {
-        glm::mat4 projection{1.0f};
-        glm::mat4 view{1.0f};
-        glm::mat4 inverseView{1.f};
-        glm::vec4 ambientLightColor{1.f, 1.f, 1.f, 0.02f};
-        SPointLight pointLights[MAX_LIGHTS];
-        int numLights;
+        alignas(16) glm::mat4 projection{1.0f};
+        alignas(16) glm::mat4 view{1.0f};
+        alignas(16) glm::mat4 inverseView{1.f};
+        alignas(16) glm::vec4 ambientLightColor{1.f, 1.f, 1.f, 0.02f};
+        alignas(16) SPointLight pointLights[MAX_LIGHTS];
+        alignas(4) int numLights = 0;
     };
 
     struct FrameInfo

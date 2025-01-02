@@ -13,7 +13,19 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
+#ifdef DEBUG
+#define GLM_ENABLE_EXPERIMENTAL
+#endif
+
 #include "External/glm/glm.hpp"
+
+#ifdef DEBUG
+// For glm::to_string
+#include "External/glm/gtx/string_cast.hpp"
+#endif
+
+#define DEBUG_PROJECTION
 
 namespace VoidEngine
 {
@@ -52,7 +64,7 @@ namespace VoidEngine
                 1,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-            uboBuffers[i]->map();
+            //uboBuffers[i]->map();
         }
 
         auto globalSetLayout = DescriptorSetLayout::Builder(*device)
@@ -68,51 +80,83 @@ namespace VoidEngine
                 .build(globalDescriptorSets[i]);
         }
 
-        Camera camera{};
-
         auto viewerObject = new GameObject(this);
         viewerObject->transform.translation.z = -2.5f;
         InputManager cameraController{};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
 
+        float timer = 0;
+
         while (!window->shouldClose())
         {
             glfwPollEvents();
 
             /*
-            for (auto& [id, gameObject] : sceneManager->GetGameObjects())
+            for (auto& [id, gameObject] : sceneManager->FindGameObject())
             {
                 gameObject->Update();
             }
             */
 
             auto newTime = std::chrono::high_resolution_clock::now();
-            float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
             currentTime = newTime;
 
-            cameraController.moveInPlaneXZ(window->getGLFWwindow(), frameTime, *viewerObject);
-            camera.setViewYXZ(viewerObject->transform.translation, viewerObject->transform.rotation);
+            //float timer = (timer + deltaTime >= 5) ? 0 : timer + deltaTime;
+            timer += deltaTime;
+
+            cameraController.moveInPlaneXZ(window->getGLFWwindow(), deltaTime, *viewerObject);
+            mainCamera->setViewYXZ(viewerObject->transform.translation, viewerObject->transform.rotation);
 
             float aspect = renderManager->GetAspectRatio();
-            camera.setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
+            mainCamera->setPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
 
             // vkBeginCommandBuffer
             if (auto commandBuffer = renderer->beginFrame(renderManager->GetSwapChain()); commandBuffer != VK_NULL_HANDLE)
             {
                 const int frameIndex = renderer->getFrameIndex();
 
-                ubo->projection = camera.getProjection();
-                ubo->view = camera.getView();
-                ubo->inverseView = camera.getInverseView();
+                ubo->projection = mainCamera->getProjection();
+                ubo->view = mainCamera->getView();
+                ubo->inverseView = mainCamera->getInverseView();
 
+#ifdef DEBUG_PROJECTION
+                if (timer >= 1)
+                {
+                    glm::mat4 projection = glm::perspective(glm::radians(45.0f), renderManager->GetAspectRatio(), 0.1f, 100.0f);
+                    std::cerr << "Projection Matrix (before upload):\n" << glm::to_string(projection) << std::endl;
+                }
+#endif
+
+                uboBuffers[frameIndex]->map(sizeof(ubo));
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
-                for (int i = 0; i < static_cast<int>(RenderQueueType::COUNT); i++)
+#ifdef DEBUG_PROJECTION
+                if (timer >= 1)
                 {
-                    auto queueToRender = static_cast<RenderQueueType>(i);
+                    std::cerr << "UBO Projection Matrix (after upload):\n";
+                    std::cerr << glm::to_string(ubo->projection) << std::endl;
+
+                    timer = 0;
+                }
+#endif
+
+                //for (int i = 0; i < static_cast<int>(RenderQueueType::COUNT); i++)
+                {
+                    auto queueToRender = RenderQueueType::OPAQUE; //static_cast<RenderQueueType>(i);
                     auto& queue = renderManager->GetRenderQueue(queueToRender);
+
+                    if ((queueToRender == RenderQueueType::LIGHT) && (queue.GetNumObjects() > 0))
+                    {
+                        for (int j = 0; j < renderManager->GetRenderQueue(queueToRender).gameObjectIDs.size(); j++)
+                        {
+                            auto id = renderManager->GetRenderQueue(RenderQueueType::LIGHT).gameObjectIDs[j];
+                            auto light = sceneManager->FindGameObject(id)->GetAs<PointLight>();
+                            light->UpdateLight(*ubo, j);
+                        }
+                    }
 
                     if (queue.GetNumObjects() > 0)
                     {
@@ -121,16 +165,6 @@ namespace VoidEngine
                             queue.pipeline->configInfo.renderPass,
                             renderManager->GetSwapChain(),
                             renderManager->GetFramebuffers());
-
-                        if (queueToRender == RenderQueueType::LIGHT)
-                        {
-                            for (int j = 0; j < renderManager->GetRenderQueue(queueToRender).gameObjectIDs.size(); j++)
-                            {
-                                auto id = renderManager->GetRenderQueue(RenderQueueType::LIGHT).gameObjectIDs[j];
-                                auto light = sceneManager->FindGameObject(id)->GetAs<PointLight>();
-                                light->UpdateLight(*ubo);
-                            }
-                        }
 
                         renderManager->UpdateDescriptorSet(queue.descriptorSet, uboBuffers, renderManager->GetSwapChain().GetCurrentFrame());
                         queue.pipeline->bind(commandBuffer);
